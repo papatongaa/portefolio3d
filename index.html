@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+HTML
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tanguy PAVAT | Motorsport Management</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div id="loader">
+        <h2 class="loader-text">ENGINE STARTING...</h2>
+        <div class="starting-lights">
+            <div class="light"></div>
+            <div class="light"></div>
+            <div class="light"></div>
+            <div class="light"></div>
+            <div class="light"></div>
+        </div>
+    </div>
+    <div class="garage-bg"></div>
+    <nav class="cinematic-nav">
+        <div class="logo">T. PAVAT <span>// PORTFOLIO</span></div>
+        <div class="nav-links">
+            <a href="#" class="cam-btn" data-target="auto">Home</a>
+            <a href="#" class="cam-btn" data-target="front">Experience</a>
+            <a href="#" class="cam-btn" data-target="engine">Tech Stack</a>
+            <a href="#" class="cam-btn" data-target="cockpit">About Me</a>
+        </div>
+    </nav>
+    <div id="steering-dash" class="hidden">
+        <!-- ÉCRAN GAUCHE : Profil & Études -->
+        <div class="dash-screen left-screen">
+            <div class="dash-title">PILOTE // DONNÉES</div>
+            <div class="dash-content">
+                <p class="highlight-text">Tanguy PAVAT</p>
+                <p>International Sport Administration</p>
+                <p>Master STAPS @ Université de Lille</p>
+                <p class="small-text">Expérience : France | Lituanie | NZ</p>
+            </div>
+        </div>
+        
+        <!-- ÉCRAN DROIT : Expérience & Stack -->
+        <div class="dash-screen right-screen">
+            <div class="dash-title">CARRIÈRE // TÉLÉMÉTRIE</div>
+            <div class="dash-content">
+                <p class="highlight-text">Paddon Racing Group</p>
+                <p>Motorsport Dev & Admin</p>
+                <div class="tech-tags">
+                    <span>Apps Script</span>
+                    <span>Flutter</span>
+                    <span>Glide</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-container">
+        <div class="modal-box">
+            <button id="close-modal">✕</button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+    <div id="template-app" class="hidden">
+        <h2>App Conception</h2>
+        <h3>Architecture & Logistics</h3>
+        <p>Creation of a custom mobile application to optimize field operations. The architecture relies on cross-platform development with Flutter and Glide, coupled with a powerful Supabase database to ensure a seamless, real-time information flow for the entire team.</p>
+    </div>
+    <div id="template-canada" class="hidden">
+        <h2>Canadian Experience</h2>
+        <h3>International Immersion</h3>
+        <p>A highly impactful human and professional experience in Canada, which allowed me to refine my adaptability in new cultural environments and forge a global vision of international collaboration.</p>
+    </div>
+    <div id="template-tracker" class="hidden">
+        <h2>Order Tracker</h2>
+        <h3>Process Automation</h3>
+        <p>Implementation of a highly automated order tracking system. Leveraging custom Google Apps Scripts and Chrome extensions, this project streamlines communication between management interfaces and eliminates administrative friction in the workshop.</p>
+    </div>
+    <div id="template-leader" class="hidden">
+        <h2>Class Leader</h2>
+        <h3>University of Lille</h3>
+        <p>Student representative at the Sports Council (SUAPS) for the Master STAPS International Sport Administration. A spokesperson role requiring diplomacy, organization, and excellent communication to champion the cohort's projects to the administration.</p>
+    </div>
+    <svg id="lines-svg">
+        <line id="line-0" x1="0" y1="0" x2="0" y2="0" />
+        <line id="line-1" x1="0" y1="0" x2="0" y2="0" />
+        <line id="line-2" x1="0" y1="0" x2="0" y2="0" />
+        <line id="line-3" x1="0" y1="0" x2="0" y2="0" />
+    </svg>
+    <div class="panel panel-tl" id="panel-0" data-modal="template-app">
+        <h3>App Conception</h3>
+        <p>Mobile Development <span class="click-hint">[Details]</span></p>
+    </div>
+    <div class="panel panel-bl" id="panel-1" data-modal="template-canada">
+        <h3>Canada</h3>
+        <p>International Experience <span class="click-hint">[Details]</span></p>
+    </div>
+    <div class="panel panel-tr" id="panel-2" data-modal="template-tracker">
+        <h3>Order Tracker</h3>
+        <p>Tools & Automation <span class="click-hint">[Details]</span></p>
+    </div>
+    <div class="panel panel-br" id="panel-3" data-modal="template-leader">
+        <h3>Class Leader</h3>
+        <p>Management & Representation <span class="click-hint">[Details]</span></p>
+    </div>
+    <div class="target target-0"></div>
+    <div class="target target-1"></div>
+    <div class="target target-2"></div>
+    <div class="target target-3"></div>
+    <canvas class="webgl"></canvas>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
