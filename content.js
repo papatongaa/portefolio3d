@@ -43,6 +43,7 @@ export const panelsData = {
             ['2023 – 2025 · LITHUANIA', 'Erasmus+ year and management internship', 'Vilnius University · Zala Arms'],
             ['APR – AUG 2026 · NEW ZEALAND', 'Management Intern', 'Paddon Racing Group, Cromwell']
         ])}
+        <a class="m-link" href="#" data-goto="front">See it on the globe →</a>
     `,
 
     // 03 · Roues

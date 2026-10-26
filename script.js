@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createCockpitScreens, pageToHTML } from './cockpit-screens.js';
 import { panelsData } from './content.js';
+import { createGlobe, placeCardHTML } from './globe.js';
 
 // Chemins des modèles (en minuscules : les serveurs web, eux, font la différence entre "Models" et "models")
 const CAR_MODEL_URL = 'assets/f1-car.glb';
@@ -29,6 +30,15 @@ scene.add(camera);
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+// --- GLOBE (onglet Experience) ---
+const globe = createGlobe({
+    camera, canvas,
+    maxAnisotropy: renderer.capabilities.getMaxAnisotropy(),
+    maxTexture: renderer.capabilities.maxTextureSize,
+    onPlace: (place) => openPlaceCard(place)
+});
+scene.add(globe.group);
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
@@ -181,6 +191,7 @@ window.addEventListener('resize', () => {
     camera.aspect = sizes.width / sizes.height;
     fitFieldOfView();
     renderer.setSize(sizes.width, sizes.height);
+    globe.resize(sizes.width, sizes.height);
 });
 
 let isAutoRotating = true;
@@ -240,9 +251,32 @@ function resetCarMaterials(keepXRay = false) {
     });
 }
 
-// --- NAVIGATION (menu du haut) ---
 const modalContainer = document.getElementById('modal-container');
 const modalContent = document.getElementById('modal-content');
+
+// --- FICHES DU GLOBE ---
+function openPlaceCard(place) {
+    modalContent.innerHTML = placeCardHTML(place);
+    modalContainer.classList.add('open');
+    modalContainer.scrollTop = 0;
+    globe.setModalOpen(true);
+}
+function closeGlobeCard() {
+    modalContainer.classList.remove('open');
+    globe.setModalOpen(false);
+}
+// Bouton "See it on the globe" dans la fiche International
+modalContent.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-goto]');
+    if (!go) return;
+    e.preventDefault();
+    modalContainer.classList.remove('open');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    resetCarMaterials();
+    document.querySelector(`.cam-btn[data-target="${go.dataset.goto}"]`).click();
+});
+
+// --- NAVIGATION (menu du haut) ---
 
 document.querySelectorAll('.cam-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -250,6 +284,32 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
         const target = e.currentTarget.getAttribute('data-target');
         cockpitScreens.hide();
         resetScreenFocus();
+
+        // Onglet Experience : on remplace la voiture par le globe
+        if (target === 'front') {
+            if (globe.isActive()) { globe.back(); closeGlobeCard(); return; }
+            closeGlobeCard();
+            if (modalContainer.classList.contains('open')) {
+                modalContainer.classList.remove('open');
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                resetCarMaterials();
+            }
+            isAutoRotating = false; isCockpitView = false; uiVisible = false;
+            gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
+            cameraLookAtTarget.set(0, 0, 0);
+            gsap.to('.panel', { opacity: 0, duration: 0.4 });
+            document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
+            carGroup.visible = false;
+            globe.show();
+            return;
+        }
+        // Si on quitte le globe, on ramène la voiture
+        if (globe.isActive()) {
+            globe.hide();
+            carGroup.visible = true;
+            camera.position.set(0, -1, 18);
+            cameraLookAtTarget.set(0, -3, 0);
+        }
 
         // Si une fiche était ouverte, on la ferme et on éteint les pièces en surbrillance
         if (modalContainer.classList.contains('open')) {
@@ -390,6 +450,7 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
 });
 
 document.getElementById('close-modal').addEventListener('click', () => {
+    if (globe.isActive()) { closeGlobeCard(); return; }
     modalContainer.classList.remove('open');
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     isAutoRotating = true;
@@ -486,7 +547,9 @@ document.querySelectorAll('.panel').forEach(p => p.addEventListener('keydown', (
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.click(); }
 }));
 window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modalContainer.classList.contains('open')) document.getElementById('close-modal').click();
+    if (e.key !== 'Escape') return;
+    if (modalContainer.classList.contains('open')) document.getElementById('close-modal').click();
+    else if (globe.isActive() && globe.isFocused()) globe.back();
 });
 
 // --- BOUCLE D'ANIMATION ---
@@ -496,6 +559,7 @@ const screenPosition = new THREE.Vector3();
 const tick = () => {
     const delta = Math.min(clock.getDelta(), 0.1); // 0.1 max : évite un saut après un changement d'onglet
     if (isAutoRotating) carGroup.rotation.y -= AUTO_ROTATE_SPEED * delta;
+    globe.update(delta);
     camera.lookAt(cameraLookAtTarget);
     cockpitScreens.update(delta);
 

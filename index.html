@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow"> <!-- à retirer quand le site est terminé -->
     <title>Tanguy PAVAT | Motorsport Management</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -79,6 +79,23 @@
     <div class="target target-2"></div>
     <div class="target target-3"></div>
     <canvas class="webgl"></canvas>
+    <div id="globe-ui" class="hidden">
+        <div class="g-title">
+            <span class="g-eyebrow">02 · INTERNATIONAL</span>
+            <h2 id="g-name">Experience</h2>
+            <p id="g-sub"></p>
+            <button id="g-back" class="hidden">← Back to the world</button>
+        </div>
+        <div class="g-legend">
+            <span><i style="background:#d7413d"></i>Where I was born</span>
+            <span><i style="background:#00a9d6"></i>Worked or studied</span>
+            <span><i style="background:#2b6c99"></i>Visited</span>
+            <span><i class="gp"></i>Grand Prix</span>
+        </div>
+        <div id="g-hint" class="g-hint"></div>
+        <div id="g-labels"></div>
+        <div id="g-tip"></div>
+    </div>
     <div id="screen-page">
         <div class="sp-head"><span id="sp-title"></span><span id="sp-dots"></span></div>
         <div id="sp-body"></div>
