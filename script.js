@@ -16,6 +16,13 @@ const scene = new THREE.Scene();
 
 const sizes = { width: window.innerWidth, height: window.innerHeight };
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100);
+// Sur un écran plus haut que large (téléphone), on élargit le champ de vision pour que la voiture rentre dans l'image
+function fitFieldOfView() {
+    const aspect = sizes.width / sizes.height;
+    camera.fov = aspect < 1 ? Math.min(70, 45 / Math.pow(aspect, 0.75)) : 45;
+    camera.updateProjectionMatrix();
+}
+fitFieldOfView();
 camera.position.set(6, -1, 7);
 scene.add(camera);
 
@@ -172,7 +179,7 @@ window.addEventListener('resize', () => {
     sizes.width = window.innerWidth;
     sizes.height = window.innerHeight;
     camera.aspect = sizes.width / sizes.height;
-    camera.updateProjectionMatrix();
+    fitFieldOfView();
     renderer.setSize(sizes.width, sizes.height);
 });
 
@@ -247,6 +254,7 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
         // Si une fiche était ouverte, on la ferme et on éteint les pièces en surbrillance
         if (modalContainer.classList.contains('open')) {
             modalContainer.classList.remove('open');
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             resetCarMaterials();
         }
 
@@ -289,6 +297,8 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
             console.log("Il manque cette clé dans content.js :", templateId);
         }
         modalContainer.classList.add('open');
+        modalContainer.scrollTop = 0;
+        document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p === panel));
         cockpitScreens.hide();
         resetScreenFocus();
         isCockpitView = false;
@@ -381,6 +391,7 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
 
 document.getElementById('close-modal').addEventListener('click', () => {
     modalContainer.classList.remove('open');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     isAutoRotating = true;
     resetCarMaterials();
     moveCamera({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
@@ -468,6 +479,14 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') changePage(1);
     else if (e.key === 'ArrowLeft') changePage(-1);
     else if (e.key === 'Escape') unfocusScreen();
+});
+
+// Clavier : Entrée/Espace ouvre une carte, Échap ferme la fiche
+document.querySelectorAll('.panel').forEach(p => p.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.click(); }
+}));
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalContainer.classList.contains('open')) document.getElementById('close-modal').click();
 });
 
 // --- BOUCLE D'ANIMATION ---
