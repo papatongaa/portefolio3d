@@ -132,6 +132,8 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     let active = false, focusId = null, modalOpen = false;
     let globeMesh = null, patch = null, atmosphere = null;
     const arcs = [];
+    const dots = [];
+    const zoom = { t: 5 };   // distance visée par la molette
     const arcFade = { v: 1 };
     const drag = { on: false, moved: 0, x: 0, y: 0, vx: 0, vy: 0, id: -1, idle: 0 };
     const pinEls = new Map();
@@ -206,8 +208,17 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             const mat = new THREE.MeshBasicMaterial({ color: d.work ? 0x00d2ff : 0x6cc0ff, transparent: true, opacity: base });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.userData.base = base; mesh.userData.scope = d.scope || null; mesh.visible = !d.scope;
-            mesh.geometry.setDrawRange(0, 0);
+            mesh.geometry.setDrawRange(0, d.scope ? 96 * 30 : 0);
+            mesh.userData.drawn = d.scope ? 1 : 0;
             spin.add(mesh); arcs.push(mesh);
+            // pastille d'arrivée (sauf si une épingle à étiquette est déjà là)
+            const hasPin = PLACES.some((q) => Math.abs(q.lat - d.lat) < 0.3 && Math.abs(q.lon - d.lon) < 0.3);
+            if (!hasPin) {
+                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.009, 12, 8), new THREE.MeshBasicMaterial({ color: d.work ? 0x9be8ff : 0xbfe3ff }));
+                dot.position.copy(B).multiplyScalar(1.004);
+                dot.userData.arc = mesh;
+                spin.add(dot); dots.push(dot);
+            }
         });
 
         // épingles (boutons HTML, accessibles au clavier)
@@ -226,10 +237,10 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
 
     function revealArcs() {
         arcs.forEach((a, i) => {
-            if (a.userData.scope) { a.geometry.setDrawRange(0, 96 * 30); return; }
-            const o = { t: 0 };
+            if (a.userData.scope) return;
+            const o = { t: 0 }; a.userData.drawn = 0;
             gsap.to(o, { t: 1, duration: 1.8, delay: 0.8 + i * 0.12, ease: 'power2.inOut',
-                onUpdate: () => a.geometry.setDrawRange(0, Math.floor(o.t * 96) * 30) });
+                onUpdate: () => { a.userData.drawn = o.t; a.geometry.setDrawRange(0, Math.floor(o.t * 96) * 30); } });
         });
     }
 
@@ -245,10 +256,11 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         gsap.killTweensOf(S); gsap.killTweensOf(root.scale);
         S.dist = d * 1.9;
         root.scale.setScalar(0.7);
+        zoom.t = d;
         gsap.to(S, { dist: d, duration: 2, ease: 'power3.out' });
         gsap.to(root.scale, { x: 1, y: 1, z: 1, duration: 1.6, ease: 'power3.out' });
-        arcs.forEach((a) => a.geometry.setDrawRange(0, 0));
-        arcFade.v = 1; arcs.forEach((a) => { a.material.opacity = a.userData.base; a.visible = !a.userData.scope; });
+        arcs.forEach((a) => { if (!a.userData.scope) { a.geometry.setDrawRange(0, 0); a.userData.drawn = 0; } });
+        arcFade.v = 1; arcs.forEach((a) => { a.material.opacity = a.userData.base; });
         if (globeMesh) revealArcs(); else load();
         requestAnimationFrame(() => el.ui.classList.add('on'));
     }
@@ -293,6 +305,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         const TWO = Math.PI * 2;
         let dy = (yaw - S.yaw) % TWO; if (dy > Math.PI) dy -= TWO; if (dy < -Math.PI) dy += TWO;
         gsap.killTweensOf(S);
+        zoom.t = dist;
         gsap.to(S, { yaw: S.yaw + dy, pitch: Math.max(-1.3, Math.min(1.3, lat * D2R)), dist, duration: 1.7, ease: 'power2.inOut' });
         fadeArcs();
         setFocusUI(id);
@@ -303,10 +316,9 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     // Les arcs disparaissent pendant le zoom sur un pays (vus de près, ils deviendraient énormes)
     function fadeArcs(to) {
         // monde : arcs principaux · zoom sur un pays : seulement ses sous-arcs
-        arcs.forEach((a) => { a.userData.show = focusId ? a.userData.scope === focusId : !a.userData.scope; });
         gsap.killTweensOf(arcFade);
         arcFade.v = 0;
-        arcs.forEach((a) => { a.material.opacity = 0; a.visible = a.userData.show; });
+        arcs.forEach((a) => { a.material.opacity = 0; });
         gsap.to(arcFade, { v: 1, duration: 1.2, delay: focusId ? 1.2 : 0.2, onUpdate: () => arcs.forEach((a) => { a.material.opacity = a.userData.base * arcFade.v; }) });
     }
 
@@ -315,6 +327,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         focusId = null;
         setFocusUI(null);
         gsap.killTweensOf(S);
+        zoom.t = baseDistance();
         gsap.to(S, { pitch: Math.max(0.2, Math.min(0.9, S.pitch)), dist: baseDistance(), duration: 1.5, ease: 'power2.inOut' });
         fadeArcs();
         if (patch) {
@@ -329,7 +342,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             el.name.textContent = 'Experience';
             el.sub.textContent = 'Where the sport and the studies took me';
             el.back.classList.add('hidden');
-            el.hint.textContent = 'Drag to rotate · click a highlighted country to zoom in';
+            el.hint.textContent = 'Drag to rotate · scroll to zoom · click a highlighted country';
             return;
         }
         const c = COUNTRIES[id];
@@ -345,7 +358,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         removePatch();
         const aspect = sz.w / sz.h;
         const latSpan = Math.min(150, (vis / D2R) * 1.55);
-        const lonSpan = Math.min(170, Math.max((latSpan * aspect) / Math.max(0.2, Math.cos(lat * D2R)), (COUNTRIES[id].box[2] - COUNTRIES[id].box[0]) * 1.8));
+        const lonSpan = Math.min(170, Math.max((latSpan * aspect) / Math.max(0.2, Math.cos(lat * D2R)), (id ? (COUNTRIES[id].box[2] - COUNTRIES[id].box[0]) * 1.8 : 0)));
         const region = [lon - lonSpan / 2, Math.max(-88, lat - latSpan / 2), lon + lonSpan / 2, Math.min(88, lat + latSpan / 2)];
         const reqId = id;
         const MAX = Math.min(3072, maxTexture);
@@ -374,7 +387,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         const hSeg = Math.min(96, Math.max(8, Math.ceil((region[3] - region[1]) / 1.5)));
         const mesh = new THREE.Mesh(sphereGeo(1.0012, wSeg, hSeg, region[0], region[2], region[1], region[3]), mat);
         mesh.renderOrder = 2;
-        mesh.userData.id = reqId;
+        mesh.userData.id = reqId; mesh.userData.lon = lon; mesh.userData.lat = lat; mesh.userData.latSpan = latSpan;
         patch = mesh; patch.material = mat;
         spin.add(mesh);
         gsap.to(mat.uniforms.uOpacity, { value: 1, duration: 1, delay: 0.5 });
@@ -388,6 +401,19 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     const ray = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
     const inv = new THREE.Quaternion();
+    function hitLonLat(e) {
+        ndc.set((e.clientX / sz.w) * 2 - 1, -(e.clientY / sz.h) * 2 + 1);
+        ray.setFromCamera(ndc, camera);
+        const o = ray.ray.origin, d = ray.ray.direction;
+        const bb = o.dot(d), cc = o.dot(o) - 1, disc = bb * bb - cc;
+        if (disc < 0) return null;
+        const t = -bb - Math.sqrt(disc);
+        if (t < 0) return null;
+        const p = o.clone().add(d.clone().multiplyScalar(t));
+        inv.copy(spin.quaternion).invert();
+        p.applyQuaternion(inv);
+        return { lon: Math.atan2(p.x, p.z) / D2R, lat: Math.asin(Math.max(-1, Math.min(1, p.y))) / D2R };
+    }
     function pickCountry(e) {
         if (!world) return null;
         ndc.set((e.clientX / sz.w) * 2 - 1, -(e.clientY / sz.h) * 2 + 1);
@@ -429,7 +455,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
             drag.x = e.clientX; drag.y = e.clientY;
             drag.moved += Math.abs(dx) + Math.abs(dy);
-            if (!focusId && drag.moved > 4) {
+            if (drag.moved > 4) {
                 const k = (2 * (S.dist - 0.6) * Math.tan((camera.fov * D2R) / 2)) / sz.h;
                 S.yaw += dx * k; S.pitch = Math.max(-1.3, Math.min(1.3, S.pitch + dy * k));
                 drag.vx = dx * k * 60; drag.vy = dy * k * 60;
@@ -460,19 +486,62 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     canvas.addEventListener('pointercancel', () => { drag.on = false; });
     canvas.addEventListener('pointerleave', () => el.tip.classList.remove('on'));
     el.back.addEventListener('click', backToWorld);
+    canvas.addEventListener('wheel', (e) => {
+        if (!active) return;
+        e.preventDefault();
+        const base = baseDistance();
+        zoom.t = Math.max(1.03, Math.min(base * 1.1, zoom.t * Math.exp(e.deltaY * 0.0014)));
+        if (focusId && zoom.t > base * 0.85) { zoom.t = base; backToWorld(); return; }
+        const tw = { dist: zoom.t, duration: 0.45, ease: 'power2.out', overwrite: 'auto' };
+        if (e.deltaY < 0) {
+            // on zoome vers le point sous la souris
+            const h = hitLonLat(e);
+            if (h) {
+                const TWO = Math.PI * 2;
+                let dy = (-h.lon * D2R - S.yaw) % TWO; if (dy > Math.PI) dy -= TWO; if (dy < -Math.PI) dy += TWO;
+                tw.yaw = S.yaw + dy * 0.45;
+                tw.pitch = S.pitch + (Math.max(-1.3, Math.min(1.3, h.lat * D2R)) - S.pitch) * 0.45;
+            }
+        }
+        drag.vx = drag.vy = 0;
+        gsap.to(S, tw);
+    }, { passive: false });
+
+    // Carte détaillée automatique : dès qu'on zoome (molette ou clic), on la recalcule autour du centre de la vue
+    let idle = 0, lastKey = '';
+    function managePatch(delta) {
+        const base = baseDistance();
+        const zoomedIn = S.dist < base * 0.62;
+        const key = `${S.yaw.toFixed(3)}|${S.pitch.toFixed(3)}|${S.dist.toFixed(3)}`;
+        idle = key === lastKey && !drag.on ? idle + delta : 0;
+        lastKey = key;
+        if (!zoomedIn) {
+            if (patch && !focusId) { const old = patch; patch = null; gsap.to(old.material.uniforms.uOpacity, { value: 0, duration: 0.5, onComplete: () => disposePatch(old) }); }
+            return;
+        }
+        if (idle < 0.35 || !world) return;
+        const lon = -S.yaw / D2R, lat = S.pitch / D2R;
+        const vis = 2 * Math.tan((camera.fov * D2R) / 2) * (S.dist - 1) * 1.1;
+        let need = !patch;
+        if (patch) {
+            const u = patch.userData;
+            const d = ll(lon, lat).angleTo(ll(u.lon, u.lat)) / D2R;
+            need = d > u.latSpan * 0.14 || (vis / D2R) * 1.55 > u.latSpan * 1.3;
+        }
+        if (need) buildPatch(null, ((lon + 540) % 360) - 180, lat, vis);
+    }
 
     // ---------- à chaque image ----------
     const v = new THREE.Vector3(), camPos = new THREE.Vector3();
     function update(delta) {
         if (!active) return;
         if (!drag.on) {
-            if (!focusId) {
-                if (Math.abs(drag.vx) + Math.abs(drag.vy) > 0.001) {
-                    S.yaw += drag.vx * delta; S.pitch = Math.max(-1.3, Math.min(1.3, S.pitch + drag.vy * delta));
-                    const f = Math.pow(0.04, delta); drag.vx *= f; drag.vy *= f;
-                } else if (!modalOpen) S.yaw += AUTO_SPIN * delta;
-            }
+            if (Math.abs(drag.vx) + Math.abs(drag.vy) > 0.001) {
+                S.yaw += drag.vx * delta; S.pitch = Math.max(-1.3, Math.min(1.3, S.pitch + drag.vy * delta));
+                const f = Math.pow(0.04, delta); drag.vx *= f; drag.vy *= f;
+            } else if (!modalOpen && !focusId && S.dist > baseDistance() * 0.62) S.yaw += AUTO_SPIN * delta;
         }
+        managePatch(delta);
         spin.rotation.set(S.pitch, S.yaw, 0);
         spin.updateMatrixWorld(true);
         camera.position.set(0, 0, S.dist);
@@ -485,12 +554,23 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
 
         // épingles : position écran + masquage derrière le globe
         camPos.set(0, 0, S.dist);
-        const show = (o) => (focusId ? o.p.country === focusId : !!o.p.world);
+        const zoomedIn = S.dist < baseDistance() * 0.62;
+        const show = (o) => (focusId ? o.p.country === focusId : (!!o.p.world || zoomedIn));
+        // vus de très près, les grands arcs deviendraient énormes : ils s'estompent quand on zoome
+        const baseD = baseDistance();
+        const farFade = Math.max(0, Math.min(1, (S.dist - baseD * 0.3) / (baseD * 0.25)));
+        arcs.forEach((a) => {
+            const sub = !!a.userData.scope;
+            a.visible = focusId ? a.userData.scope === focusId : (!sub || zoomedIn);
+            if (!sub) { a.material.opacity = a.userData.base * arcFade.v * farFade; if (farFade < 0.02) a.visible = false; }
+        });
+        const dotScale = Math.max(0.25, Math.min(1, (S.dist - 0.95) * 0.32));
+        dots.forEach((d) => { d.visible = d.userData.arc.visible && d.userData.arc.userData.drawn > 0.97 && root.scale.x > 0.95; d.scale.setScalar(dotScale); });
         pinEls.forEach((o) => {
             v.copy(o.v).applyMatrix4(spin.matrixWorld);
             const n = v.clone().normalize();
             const facing = n.dot(camPos.clone().sub(v).normalize()) > 0.12;
-            const on = !!(world && globeMesh) && show(o) && facing && root.scale.x > 0.95 && (!focusId || (patch && patch.material.uniforms.uOpacity.value > 0.6));
+            const on = !!(world && globeMesh) && show(o) && facing && root.scale.x > 0.95 && (!zoomedIn || (patch && patch.material.uniforms.uOpacity.value > 0.4));
             if (on !== o.shown) { o.shown = on; o.el.classList.toggle('on', on); }
             if (on) {
                 v.project(camera);
@@ -504,7 +584,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
 
     function resize(w, h) {
         sz.w = w; sz.h = h;
-        if (active && !focusId) { gsap.killTweensOf(S, 'dist'); S.dist = baseDistance(); }
+        if (active && !focusId) { gsap.killTweensOf(S, 'dist'); S.dist = zoom.t = baseDistance(); }
     }
 
     return {
