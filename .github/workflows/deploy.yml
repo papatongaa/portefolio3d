@@ -47,6 +47,7 @@ jobs:
           cp index.html script.js style.css cockpit-screens.js content.js globe.js places.js garage.jpg _site/
           cp -r assets _site/assets
           cp -r data _site/data
+          if [ -d photos ]; then cp -r photos _site/photos; fi
           # Le navigateur doit toujours revérifier le code (sinon Cloudflare peut garder d'anciennes versions des heures).
           printf '/\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/*.js\n  Cache-Control: no-cache\n/*.css\n  Cache-Control: no-cache\n' > _site/_headers
           ls -la _site _site/assets

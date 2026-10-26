@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COUNTRIES, PLACES, ORIGIN } from './places.js';
+import { COUNTRIES, PLACES, ORIGIN, EXTRA_ARCS } from './places.js';
 
 const D2R = Math.PI / 180;
 const AUTO_SPIN = 0.07;            // rad/s : le globe tourne doucement tout seul
@@ -107,7 +107,8 @@ export function placeCardHTML(p) {
         <div class="m-eyebrow">${p.eyebrow}</div>
         <h2>${p.title}</h2>
         <p class="m-hook">${p.hook}</p>
-        ${p.text ? `<p>${p.text}</p>` : ''}`;
+        ${p.text ? `<p>${p.text}</p>` : ''}
+        ${p.photos && p.photos.length ? `<div class="m-photos">${p.photos.map((u) => `<img src="${u}" alt="${p.title}" loading="lazy">`).join('')}</div>` : ''}`;
 }
 
 export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 4096, onPlace }) {
@@ -179,22 +180,30 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         }));
         root.add(atmosphere);
 
-        // arcs depuis l'Autriche
+        // arcs depuis l'Autriche : un par pays (les pays de travail en cyan épais, les autres plus fins)
         const origin = ll(ORIGIN.lon, ORIGIN.lat);
-        for (const p of PLACES.filter((q) => q.arc)) {
-            const B = ll(p.lon, p.lat), ang = origin.angleTo(B), pts = [];
+        const dests = [];
+        for (const [id, c] of Object.entries(COUNTRIES)) {
+            const pl = PLACES.find((q) => q.country === id && q.arc);
+            if (pl) dests.push({ lat: pl.lat, lon: pl.lon, work: pl.type === 'work' });
+            else if (c.hub) dests.push({ lat: c.hub[0], lon: c.hub[1], work: false });
+        }
+        for (const [, la, lo] of EXTRA_ARCS) dests.push({ lat: la, lon: lo, work: false });
+        dests.forEach((d) => {
+            const B = ll(d.lon, d.lat), ang = origin.angleTo(B), pts = [];
             for (let i = 0; i <= 64; i++) {
-                const t = i / 64, s = Math.sin(ang);
-                const q = origin.clone().multiplyScalar(Math.sin((1 - t) * ang) / s).add(B.clone().multiplyScalar(Math.sin(t * ang) / s));
-                pts.push(q.normalize().multiplyScalar(1 + (0.035 + 0.2 * (ang / Math.PI)) * Math.sin(Math.PI * t)));
+                const t = i / 64, sn = Math.sin(ang);
+                const q = origin.clone().multiplyScalar(Math.sin((1 - t) * ang) / sn).add(B.clone().multiplyScalar(Math.sin(t * ang) / sn));
+                pts.push(q.normalize().multiplyScalar(1 + (0.03 + 0.2 * (ang / Math.PI)) * Math.sin(Math.PI * t)));
             }
-            const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 96, 0.0032, 6, false);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00d2ff, transparent: true, opacity: 0.9 });
+            const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 96, d.work ? 0.0032 : 0.002, 5, false);
+            const base = d.work ? 0.95 : 0.6;
+            const mat = new THREE.MeshBasicMaterial({ color: d.work ? 0x00d2ff : 0x6cc0ff, transparent: true, opacity: base });
             const mesh = new THREE.Mesh(geo, mat);
-            mesh.userData.total = geo.index.count;
+            mesh.userData.base = base;
             mesh.geometry.setDrawRange(0, 0);
             spin.add(mesh); arcs.push(mesh);
-        }
+        });
 
         // épingles (boutons HTML, accessibles au clavier)
         for (const p of PLACES) {
@@ -213,8 +222,8 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     function revealArcs() {
         arcs.forEach((a, i) => {
             const o = { t: 0 };
-            gsap.to(o, { t: 1, duration: 1.8, delay: 0.9 + i * 0.35, ease: 'power2.inOut',
-                onUpdate: () => a.geometry.setDrawRange(0, Math.floor((o.t * 96)) * 36) });
+            gsap.to(o, { t: 1, duration: 1.8, delay: 0.8 + i * 0.12, ease: 'power2.inOut',
+                onUpdate: () => a.geometry.setDrawRange(0, Math.floor(o.t * 96) * 30) });
         });
     }
 
@@ -233,7 +242,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         gsap.to(S, { dist: d, duration: 2, ease: 'power3.out' });
         gsap.to(root.scale, { x: 1, y: 1, z: 1, duration: 1.6, ease: 'power3.out' });
         arcs.forEach((a) => a.geometry.setDrawRange(0, 0));
-        arcFade.v = 1; arcs.forEach((a) => { a.material.opacity = 0.9; a.visible = true; });
+        arcFade.v = 1; arcs.forEach((a) => { a.material.opacity = a.userData.base; a.visible = true; });
         if (globeMesh) revealArcs(); else load();
         requestAnimationFrame(() => el.ui.classList.add('on'));
     }
@@ -287,7 +296,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
 
     // Les arcs disparaissent pendant le zoom sur un pays (vus de près, ils deviendraient énormes)
     function fadeArcs(to) {
-        gsap.to(arcFade, { v: to, duration: 0.8, onUpdate: () => arcs.forEach((a) => { a.material.opacity = 0.9 * arcFade.v; a.visible = arcFade.v > 0.02; }) });
+        gsap.to(arcFade, { v: to, duration: 0.8, onUpdate: () => arcs.forEach((a) => { a.material.opacity = a.userData.base * arcFade.v; a.visible = arcFade.v > 0.02; }) });
     }
 
     function backToWorld() {

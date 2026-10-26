@@ -9,29 +9,33 @@ export const COUNTRIES = {
     '124': { name: 'Canada',         kind: 'work',  note: 'Worked there in 2019 · visited 2 times', box: [-141, 41.5, -52, 62] },
     '440': { name: 'Lithuania',      kind: 'work',  note: 'Erasmus+ and internship, 2023 – 2025', box: [20.9, 53.8, 26.9, 56.5] },
     '554': { name: 'New Zealand',    kind: 'work',  note: 'Paddon Racing Group, 2026',            box: [166.3, -47.4, 178.6, -34.3] },
-    '818': { name: 'Egypt',          kind: 'visit', note: 'Visited',                              box: [24.7, 22, 36.9, 31.7] },
-    '840': { name: 'United States',  kind: 'visit', note: 'Visited 2 times',                      box: [-125, 24.5, -66.9, 49.4] },
-    '826': { name: 'United Kingdom', kind: 'visit', note: 'England 2 times · Scotland 3 times',   box: [-8.7, 49.8, 1.8, 60.9] },
-    '276': { name: 'Germany',        kind: 'visit', note: 'Visited 3 times',                      box: [5.8, 47.2, 15.1, 55.1] },
-    '348': { name: 'Hungary',        kind: 'visit', note: 'Visited',                              box: [16, 45.7, 22.9, 48.6] },
+    '818': { name: 'Egypt',          kind: 'visit', note: 'Visited',                              hub: [30.04, 31.24], box: [24.7, 22, 36.9, 31.7] },
+    '840': { name: 'United States',  kind: 'visit', note: 'Visited 2 times',                      hub: [39.0, -98.0], box: [-125, 24.5, -66.9, 49.4] },
+    '826': { name: 'United Kingdom', kind: 'visit', note: 'England 2 times · Scotland 3 times',   hub: [51.51, -0.13], box: [-8.7, 49.8, 1.8, 60.9] },
+    '276': { name: 'Germany',        kind: 'visit', note: 'Visited 3 times',                      hub: [52.52, 13.4], box: [5.8, 47.2, 15.1, 55.1] },
+    '348': { name: 'Hungary',        kind: 'visit', note: 'Visited',                              hub: [47.5, 19.04], box: [16, 45.7, 22.9, 48.6] },
     '380': { name: 'Italy',          kind: 'visit', note: 'Italian Grand Prix, Monza 2023',       box: [6.6, 36.6, 18.6, 47.1] },
     '056': { name: 'Belgium',        kind: 'visit', note: 'Belgian Grand Prix, Spa 2023',         box: [2.5, 49.4, 6.5, 51.6] },
-    '724': { name: 'Spain',          kind: 'visit', note: 'Visited',                              box: [-9.5, 35.9, 4.4, 43.9] },
-    '620': { name: 'Portugal',       kind: 'visit', note: 'Visited',                              box: [-9.6, 36.9, -6.1, 42.2] },
-    '756': { name: 'Switzerland',    kind: 'visit', note: 'Visited',                              box: [5.9, 45.8, 10.5, 47.9] },
-    '428': { name: 'Latvia',         kind: 'visit', note: 'Visited',                              box: [20.9, 55.6, 28.3, 58.1] },
-    '246': { name: 'Finland',        kind: 'visit', note: 'Visited',                              box: [20, 59.7, 31.7, 70.2] },
-    '504': { name: 'Morocco',        kind: 'visit', note: 'Visited',                              box: [-13.3, 27.6, -1.1, 35.9] },
-    '480': { name: 'Mauritius',      kind: 'visit', note: 'Visited',                              box: [57.2, -20.6, 57.9, -19.9] },
-    '036': { name: 'Australia',      kind: 'visit', note: 'Visited',                              box: [112.9, -43.7, 153.7, -10.6] },
-    '192': { name: 'Cuba',           kind: 'visit', note: 'Visited',                              box: [-85, 19.7, -74, 23.4] }
+    '724': { name: 'Spain',          kind: 'visit', note: 'Visited',                              hub: [40.42, -3.7], box: [-9.5, 35.9, 4.4, 43.9] },
+    '620': { name: 'Portugal',       kind: 'visit', note: 'Visited',                              hub: [38.72, -9.14], box: [-9.6, 36.9, -6.1, 42.2] },
+    '756': { name: 'Switzerland',    kind: 'visit', note: 'Visited',                              hub: [46.95, 7.45], box: [5.9, 45.8, 10.5, 47.9] },
+    '428': { name: 'Latvia',         kind: 'visit', note: 'Visited',                              hub: [56.95, 24.1], box: [20.9, 55.6, 28.3, 58.1] },
+    '246': { name: 'Finland',        kind: 'visit', note: 'Visited',                              hub: [60.17, 24.94], box: [20, 59.7, 31.7, 70.2] },
+    '504': { name: 'Morocco',        kind: 'visit', note: 'Visited',                              hub: [34.02, -6.84], box: [-13.3, 27.6, -1.1, 35.9] },
+    '480': { name: 'Mauritius',      kind: 'visit', note: 'Visited',                              hub: [-20.16, 57.5], box: [57.2, -20.6, 57.9, -19.9] },
+    '036': { name: 'Australia',      kind: 'visit', note: 'Visited',                              hub: [-35.28, 149.13], box: [112.9, -43.7, 153.7, -10.6] },
+    '192': { name: 'Cuba',           kind: 'visit', note: 'Visited',                              hub: [23.11, -82.37], box: [-85, 19.7, -74, 23.4] }
 };
+
+// Arcs supplémentaires (en plus d'un arc par pays) : [nom, lat, lon]
+export const EXTRA_ARCS = [['Edinburgh', 55.95, -3.19]];
 
 // Le point de départ des arcs
 export const ORIGIN = { lat: 47.6, lon: 14.3 };
 
 // Épingles. type : 'home' | 'work' | 'gp'. world:true = visible aussi sur le globe entier.
 // arc:true = un arc part d'Autriche vers cette épingle.
+// photos: ['photos/spa-1.jpg', ...] : mets tes images dans le dossier photos et liste-les ici.
 // Les textes viennent des fiches / du CV. Ajoute tes propres anecdotes dans "text".
 export const PLACES = [
     {
@@ -68,12 +72,12 @@ export const PLACES = [
         id: 'spa', country: '056', type: 'gp',
         name: 'Spa-Francorchamps', lat: 50.4372, lon: 5.9714,
         eyebrow: 'GRAND PRIX · BELGIUM', title: 'Belgian Grand Prix', hook: 'Spa-Francorchamps · 2023',
-        text: ''
+        text: '', photos: []
     },
     {
         id: 'monza', country: '380', type: 'gp',
         name: 'Monza', lat: 45.6156, lon: 9.2811,
         eyebrow: 'GRAND PRIX · ITALY', title: 'Italian Grand Prix', hook: 'Autodromo Nazionale Monza · 2023',
-        text: ''
+        text: '', photos: []
     }
 ];
