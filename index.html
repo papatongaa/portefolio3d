@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-HTML
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow"> <!-- à retirer quand le site est terminé -->
     <title>Tanguy PAVAT | Motorsport Management</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -38,57 +38,11 @@ HTML
             <a href="#" class="cam-btn" data-target="cockpit">About Me</a>
         </div>
     </nav>
-    <div id="steering-dash" class="hidden">
-        <!-- ÉCRAN GAUCHE : Profil & Études -->
-        <div class="dash-screen left-screen">
-            <div class="dash-title">PILOTE // DONNÉES</div>
-            <div class="dash-content">
-                <p class="highlight-text">Tanguy PAVAT</p>
-                <p>International Sport Administration</p>
-                <p>Master STAPS @ Université de Lille</p>
-                <p class="small-text">Expérience : France | Lituanie | NZ</p>
-            </div>
-        </div>
-        
-        <!-- ÉCRAN DROIT : Expérience & Stack -->
-        <div class="dash-screen right-screen">
-            <div class="dash-title">CARRIÈRE // TÉLÉMÉTRIE</div>
-            <div class="dash-content">
-                <p class="highlight-text">Paddon Racing Group</p>
-                <p>Motorsport Dev & Admin</p>
-                <div class="tech-tags">
-                    <span>Apps Script</span>
-                    <span>Flutter</span>
-                    <span>Glide</span>
-                </div>
-            </div>
-        </div>
-    </div>
     <div id="modal-container">
         <div class="modal-box">
             <button id="close-modal">✕</button>
             <div id="modal-content"></div>
         </div>
-    </div>
-    <div id="template-app" class="hidden">
-        <h2>App Conception</h2>
-        <h3>Architecture & Logistics</h3>
-        <p>Creation of a custom mobile application to optimize field operations. The architecture relies on cross-platform development with Flutter and Glide, coupled with a powerful Supabase database to ensure a seamless, real-time information flow for the entire team.</p>
-    </div>
-    <div id="template-canada" class="hidden">
-        <h2>Canadian Experience</h2>
-        <h3>International Immersion</h3>
-        <p>A highly impactful human and professional experience in Canada, which allowed me to refine my adaptability in new cultural environments and forge a global vision of international collaboration.</p>
-    </div>
-    <div id="template-tracker" class="hidden">
-        <h2>Order Tracker</h2>
-        <h3>Process Automation</h3>
-        <p>Implementation of a highly automated order tracking system. Leveraging custom Google Apps Scripts and Chrome extensions, this project streamlines communication between management interfaces and eliminates administrative friction in the workshop.</p>
-    </div>
-    <div id="template-leader" class="hidden">
-        <h2>Class Leader</h2>
-        <h3>University of Lille</h3>
-        <p>Student representative at the Sports Council (SUAPS) for the Master STAPS International Sport Administration. A spokesperson role requiring diplomacy, organization, and excellent communication to champion the cohort's projects to the administration.</p>
     </div>
     <svg id="lines-svg">
         <line id="line-0" x1="0" y1="0" x2="0" y2="0" />
@@ -117,6 +71,24 @@ HTML
     <div class="target target-2"></div>
     <div class="target target-3"></div>
     <canvas class="webgl"></canvas>
+    <div id="screen-page">
+        <div class="sp-head"><span id="sp-title"></span><span id="sp-dots"></span></div>
+        <div id="sp-body"></div>
+    </div>
+    <div id="screen-nav" class="hidden">
+        <button id="sn-prev" aria-label="Previous page">◂</button>
+        <span id="sn-label"></span>
+        <button id="sn-next" aria-label="Next page">▸</button>
+        <button id="sn-close">✕ Back to cockpit</button>
+    </div>
+    <footer class="credits">
+        3D models:
+        <a href="https://sketchfab.com/3d-models/new-f1-car-2026-new-car-a5bd945a823e43ea958edb930548bd3b" target="_blank" rel="noopener">"NEW F1 CAR 2026"</a> by
+        <a href="https://sketchfab.com/abuhossain844" target="_blank" rel="noopener">Abu Saif</a> ·
+        <a href="https://sketchfab.com/3d-models/motor-v6-turbo-9addd2aefd944cae90a0f7151e039c77" target="_blank" rel="noopener">"Motor V6 Turbo"</a> by
+        <a href="https://sketchfab.com/MAXVERSTAPPEN2025" target="_blank" rel="noopener">MAXVERSTAPPEN2025</a> ·
+        <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+    </footer>
     <script type="module" src="script.js"></script>
 </body>
 </html>

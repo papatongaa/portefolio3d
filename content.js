@@ -9,18 +9,18 @@ export const panelsData = {
     'template-canada': `
         <h2>Expérience Internationale</h2>
         <p class="highlight">France | Lituanie | Nouvelle-Zélande</p>
-        <p>Ton texte sur tes expériences à l'étranger, tes études, et ton adaptation à de nouveaux environnements.</p>
+        <p>Just as the front wing directs the airflow over the entire car, my experiences abroad shaped my ambitions and dreams from a very early age. So, at age 15, I set out on my own to develop my international skills by working for one month at the Montreal Skeet Club. During that time, I learned how to manage groups of international tourists, developed a high degree of independence, and took the initiative at a facility spanning several dozen hectares. This experience gave me the confidence to never be daunted by the prospect of working abroad and to spend months in Lithuania or <strong>New Zealand with Hayden Paddon</strong>.</p>
     `,
     
     'template-tracker': `
         <h2>Analyse & Gestion de Projet</h2>
         <p class="highlight">Optimisation des processus</p>
-        <p>Ton texte sur la gestion de projet, l'audit, et tes solutions apportées.</p>
+        <p>Details coming soon.</p>
     `,
     
     'template-leader': `
         <h2>Logistique & Coordination</h2>
         <p class="highlight">Gestion sur le terrain</p>
-        <p>Ton texte sur la logistique d'équipe, la planification, et l'opérationnel.</p>
+        <p>Details coming soon.</p>
     `
 };

@@ -55,7 +55,7 @@ body {
     position: absolute; top: 0; left: 0; width: 100%;
     padding: 20px 50px;
     display: flex; justify-content: space-between; align-items: center;
-    z-index: 20;
+    z-index: 40;
     background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
 }
 .logo { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; }
@@ -99,10 +99,10 @@ body {
     border-left: 2px solid #cc0000;
     backdrop-filter: blur(15px); 
     -webkit-backdrop-filter: blur(15px);
-    z-index: 100; 
+    z-index: 100;
+    top: 70px;
+    height: calc(100vh - 70px);
     padding: 60px 40px 40px 40px;
-    padding-bottom: 80px;
-    margin-top: 70px;
     transition: right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     overflow-y: auto;
     box-shadow: -10px 0 30px rgba(0,0,0,0.8);
@@ -110,7 +110,7 @@ body {
 #modal-content::after {
     content: "";
     display: block;
-    height: 100px;
+    height: 40px;
 }
 #modal-container.open { right: 0; }
 .modal-box { position: relative; width: 100%; height: 100%; }
@@ -129,59 +129,84 @@ body {
 #close-modal:hover { color: #cc0000; transform: scale(1.2); }
 #modal-content h2 { font-size: 1.8rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; color: #fff;}
 #modal-content h3 { font-size: 1rem; color: #cc0000; margin-bottom: 25px; font-weight: 400; }
-#modal-content p { font-size: 1rem; line-height: 1.7; color: #bbb; }
-/* --- HUD COCKPIT (Double Écran) --- */
-#steering-dash {
-    /* position: absolute; */
-    /* top: 55%; */
-    /* left: 50%; */
-    /* transform: translate(-50%, -50%); */
-    width: 1000px; /* Largeur totale de la zone */
-    display: flex; 
-    justify-content: space-between; 
-    gap: 120px; /* Espace central pour épouser la forme du cockpit/halo */
-    z-index: 50; 
-    pointer-events: auto; 
-    transition: opacity 0.5s ease;
-}
+#modal-content p { font-size: 1rem; line-height: 1.7; color: #bbb; margin-bottom: 14px; }
+#modal-content p.highlight { font-size: 1rem; color: #cc0000; margin-bottom: 25px; font-weight: 400; }
+#modal-content strong { color: #fff; font-weight: 600; }
 
-#steering-dash.hidden { 
-    opacity: 0; 
-    pointer-events: none; 
+/* --- CRÉDITS DES MODÈLES 3D (obligatoires : licence CC BY 4.0) --- */
+.credits {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 15; font-size: 0.65rem; color: #555; letter-spacing: 0.3px;
+    white-space: nowrap;
 }
+.credits a { color: #777; text-decoration: none; }
+.credits a:hover { color: #fff; }
+/* --- CRÉDITS DES MODÈLES 3D (obligatoires : licence CC BY 4.0) --- */
+.credits {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 15; font-size: 0.65rem; color: #555; letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+.credits a { color: #777; text-decoration: none; }
+.credits a:hover { color: #fff; }
 
-.dash-screen {
-    flex: 1;
-    background: rgba(10, 10, 10, 0.45);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(0, 210, 255, 0.2); 
-    border-top: 3px solid #00d2ff;
-    padding: 15px 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0, 210, 255, 0.1);
+/* --- NAVIGATION QUAND UN ÉCRAN DU COCKPIT EST ZOOMÉ --- */
+#screen-nav {
+    position: fixed; left: 50%; bottom: 6%; transform: translateX(-50%);
+    z-index: 30; display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px; border-radius: 999px;
+    background: rgba(8, 12, 16, 0.75); border: 1px solid rgba(0, 210, 255, 0.35);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    color: #cfd8dc; font-size: 0.85rem; letter-spacing: 1px;
 }
+#screen-nav button {
+    background: none; border: 1px solid rgba(0, 210, 255, 0.4); color: #00d2ff;
+    border-radius: 999px; min-width: 38px; height: 38px; padding: 0 14px;
+    font-size: 1rem; cursor: pointer; transition: background 0.2s, color 0.2s;
+}
+#screen-nav button:hover { background: #00d2ff; color: #04080c; }
+#screen-nav #sn-close { font-size: 0.8rem; letter-spacing: 1px; margin-left: 8px; }
 
-/* Inclinaison 3D des écrans vers le pilote */
-/* Inclinaison 3D et découpe pour épouser la courbe du Halo */
-.left-screen { 
-    transform: perspective(800px) rotateY(32deg) rotateX(15deg) rotateZ(-10deg); 
-    border-radius: 80px 180px 30px 80px; 
+/* --- PAGE PLEIN ÉCRAN (quand on plonge dans un écran du cockpit) --- */
+#screen-page {
+    position: fixed; inset: 0; z-index: 25;
+    display: flex; flex-direction: column;
+    background: radial-gradient(ellipse at 50% 35%, #08161d 0%, #04080c 70%);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.45s ease, visibility 0.45s;
+    font-size: clamp(15px, 2.1vw, 30px);
 }
-
-.right-screen { 
-    transform: perspective(800px) rotateY(-32deg) rotateX(15deg) rotateZ(10deg); 
-    border-radius: 180px 80px 80px 30px; 
+#screen-page.visible { opacity: 1; visibility: visible; pointer-events: auto; }
+#screen-page .sp-head {
+    margin: clamp(70px, 11vh, 110px) auto 0; width: min(1000px, 86vw);
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 0.7em; border-bottom: 2px solid #00d2ff;
+    color: #9fb3bd; font-weight: 700; letter-spacing: 3px; font-size: 0.8em;
 }
-.dash-title {
-    font-size: 0.85rem; color: #888; font-weight: 600; letter-spacing: 2px;
-    margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;
+#sp-dots { display: flex; gap: 10px; }
+#sp-dots i { width: 0.6em; height: 0.6em; border-radius: 50%; background: rgba(255,255,255,0.2); display: block; }
+#sp-dots i.on { background: #00d2ff; box-shadow: 0 0 10px #00d2ff; }
+#sp-body {
+    flex: 1; margin: 0 auto; width: min(1000px, 86vw);
+    display: flex; flex-direction: column; justify-content: center;
+    padding-bottom: 14vh; overflow-y: auto;
 }
-.dash-content p { margin: 5px 0; font-size: 0.95rem; line-height: 1.4; color: #ccc; }
-.dash-content .highlight-text { color: #00d2ff; font-size: 1.2rem; font-weight: bold; margin-bottom: 8px; }
-.dash-content .small-text { font-size: 0.8rem; color: #666; margin-top: 15px; font-style: italic; }
-
-.tech-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.tech-tags span {
-    background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3);
-    padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; color: #00d2ff;
-}
+#sp-body.swap { animation: sp-in 0.45s ease both; }
+@keyframes sp-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+#sp-body .b-label { color: #789; letter-spacing: 3px; font-size: 0.8em; margin: 1.1em 0 0.4em; }
+#sp-body .b-big { color: #00d2ff; font-size: 2.4em; line-height: 1.1; margin: 0.2em 0 0.25em; font-weight: 800; }
+#sp-body .b-sub { color: #fff; font-size: 1.3em; margin-bottom: 0.4em; }
+#sp-body .b-rule { border: 0; height: 2px; background: rgba(0,210,255,0.35); margin: 0.9em 0; }
+#sp-body .b-text { color: #cfd8dc; font-size: 1.15em; margin: 0.35em 0; }
+#sp-body .b-hi { color: #fff; font-size: 1.2em; margin: 0.35em 0; }
+#sp-body .b-dim { color: #99a7ad; font-size: 1.05em; margin: 0.3em 0; }
+#sp-body .b-small { color: #99a7ad; font-size: 0.9em; margin: 0.25em 0; }
+#sp-body .b-bar { margin: 0.9em 0; }
+#sp-body .b-bar-top { display: flex; justify-content: space-between; color: #cfd8dc; font-size: 1.05em; margin-bottom: 0.35em; }
+#sp-body .b-bar-right { color: #789; }
+#sp-body .b-track { height: 0.5em; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+#sp-body .b-fill { height: 100%; width: calc(var(--v) * 100%); background: linear-gradient(90deg, #0090b0, #00d2ff); border-radius: 99px;
+    transform-origin: left; animation: sp-grow 0.9s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 0.08s); }
+@keyframes sp-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+#sp-body .b-chips { display: flex; flex-wrap: wrap; gap: 0.6em; margin: 0.4em 0 1em; }
+#sp-body .b-chips span { padding: 0.35em 0.9em; border: 1px solid rgba(0,210,255,0.5); background: rgba(0,210,255,0.1); color: #00d2ff; font-size: 1em; }

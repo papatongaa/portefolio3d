@@ -1,64 +1,61 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { createCockpitScreens, pageToHTML } from './cockpit-screens.js';
 import { panelsData } from './content.js';
+
+// Chemins des modèles (en minuscules : les serveurs web, eux, font la différence entre "Models" et "models")
+const CAR_MODEL_URL = 'assets/f1-car.glb';
+const ENGINE_MODEL_URL = 'assets/v6-engine.glb';
+
+// Vitesse de rotation automatique, en radians par seconde (identique quel que soit l'écran : 60 Hz, 120 Hz, 144 Hz...)
+const AUTO_ROTATE_SPEED = 0.4;
 
 const canvas = document.querySelector('.webgl');
 const scene = new THREE.Scene();
 
 const sizes = { width: window.innerWidth, height: window.innerHeight };
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100);
-camera.position.set(6, -1, 7); 
+camera.position.set(6, -1, 7);
 scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-const cssRenderer = new CSS3DRenderer();
-cssRenderer.setSize(sizes.width, sizes.height);
-cssRenderer.domElement.style.position = 'absolute';
-cssRenderer.domElement.style.top = '0';
-cssRenderer.domElement.style.pointerEvents = 'none'; // so it doesn't block WebGL clicks
-cssRenderer.domElement.style.zIndex = '5';
-document.body.appendChild(cssRenderer.domElement);
-
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); 
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
-const mainLight = new THREE.DirectionalLight(0xffffff, 2.5); 
+const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
 mainLight.position.set(5, 10, 7);
 scene.add(mainLight);
-const fillLight = new THREE.DirectionalLight(0xffeedd, 1.5); 
+const fillLight = new THREE.DirectionalLight(0xffeedd, 1.5);
 fillLight.position.set(-5, 3, -5);
 scene.add(fillLight);
 
 const pointsData = [
     // 0: App Conception (Capot Moteur).
     { position: new THREE.Vector3(0, 0, -1.5), radius: 0, targetEl: document.querySelector('.target-0'), panelEl: document.querySelector('#panel-0'), side: 'left' },
-    
+
     // 1: Canada (Aileron Avant).
     { position: new THREE.Vector3(0, -0.5, 3.2), radius: 1.2, targetEl: document.querySelector('.target-1'), panelEl: document.querySelector('#panel-1'), side: 'left' },
-    
-    // 2: Order Tracker (Roue). On décale le point vers l'extérieur (X = 1.6) et on réduit le rayon (0.6) pour éviter les suspensions.
+
+    // 2: Order Tracker (Roue).
     { position: new THREE.Vector3(1.3, 0, 1.6), radius: 1.4, targetEl: document.querySelector('.target-2'), panelEl: document.querySelector('#panel-2'), side: 'right' },
-    
+
     // 3: Class Leader (Aileron Arrière).
     { position: new THREE.Vector3(0.5, 0.5, -3.7), radius: 1.2, targetEl: document.querySelector('.target-3'), panelEl: document.querySelector('#panel-3'), side: 'right' }
 ];
 const pointObjects = [];
 
-const carGroup = new THREE.Group(); 
-carGroup.position.y = -3; 
+const carGroup = new THREE.Group();
+carGroup.position.y = -3;
 scene.add(carGroup);
 
-const dashEl = document.getElementById('steering-dash');
-const dashObj = new CSS3DObject(dashEl);
-dashObj.position.set(0, 0.30, 0.7); // Tweak height to nestle perfectly
-dashObj.rotation.x = -0.12; // Tilted to match halo angle
-dashObj.rotation.y = Math.PI; // Face the camera
-dashObj.scale.set(0.0028, 0.0028, 0.0028); // Scaled up so the curved edges fill the space
-carGroup.add(dashObj);
+// --- ÉCRANS 3D DU COCKPIT (About Me) ---
+const cockpitScreens = createCockpitScreens({ maxAnisotropy: renderer.capabilities.getMaxAnisotropy() });
+carGroup.add(cockpitScreens.group);
 
+// --- ÉCRAN DE CHARGEMENT (feux de départ) ---
 const manager = new THREE.LoadingManager();
 const lights = document.querySelectorAll('.light');
 const loaderText = document.querySelector('.loader-text');
@@ -82,6 +79,9 @@ manager.onLoad = () => {
     isModelLoaded = true;
     checkAndStart();
 };
+manager.onError = (url) => {
+    console.error('Impossible de charger :', url);
+};
 
 function checkAndStart() {
     if (isModelLoaded && areLightsReady) {
@@ -100,38 +100,72 @@ function checkAndStart() {
     }
 }
 
+// --- CHARGEMENT DES MODÈLES (fichiers .glb compressés avec meshopt) ---
 const loader = new GLTFLoader(manager);
-loader.load('models/scene.gltf', (gltf) => {
+loader.setMeshoptDecoder(MeshoptDecoder);
+
+// Prépare les matériaux d'un modèle pour qu'ils puissent briller puis revenir à leur état d'origine
+function prepareMaterials(model) {
+    model.traverse((child) => {
+        if (child.isMesh) {
+            child.material = child.material.clone();
+            if (!child.material.emissive) return;
+            child.userData.originalEmissive = child.material.emissive.clone();
+            child.userData.originalEmissiveIntensity = child.material.emissiveIntensity;
+        }
+    });
+}
+
+loader.load(CAR_MODEL_URL, (gltf) => {
     const car = gltf.scene;
     const box = new THREE.Box3().setFromObject(car);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    
+
     car.position.x = -center.x;
     car.position.y = -center.y;
     car.position.z += -center.z + 1.4;
-    
+
     const maxDim = Math.max(size.x, size.y, size.z);
     const scale = 7.5 / maxDim;
     car.scale.set(scale, scale, scale);
 
-    car.traverse((child) => {
-        if (child.isMesh) {
-            child.material = child.material.clone();
-            if (child.material.emissive) {
-                child.userData.originalEmissive = child.material.emissive.clone();
-            }
-        }
-    });
-
+    prepareMaterials(car);
     carGroup.add(car);
 
-    pointsData.forEach(p => {
+    pointsData.forEach((p, i) => {
         const anchor = new THREE.Object3D();
         anchor.position.copy(p.position);
         carGroup.add(anchor);
-        pointObjects.push({ ...p, anchor: anchor, lineEl: document.querySelector(`#line-${pointsData.indexOf(p)}`) });
+        pointObjects.push({ ...p, anchor: anchor, lineEl: document.querySelector(`#line-${i}`) });
     });
+});
+
+let engineModel = null;
+loader.load(ENGINE_MODEL_URL, (gltf) => {
+    engineModel = gltf.scene;
+
+    // 1. Calcul de la taille réelle du moteur importé
+    const engineBox = new THREE.Box3().setFromObject(engineModel);
+    const engineSize = engineBox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(engineSize.x, engineSize.y, engineSize.z);
+
+    // 2. Réduction automatique (taille max = 1 pour rentrer dans la F1)
+    const scale = 1 / maxDim;
+    engineModel.scale.set(scale, scale, scale);
+
+    // 3. Placement
+    engineModel.position.set(-0.19, 0, -1.2);
+
+    // Si un matériau n'a pas de lumière interne, on lui en crée une éteinte (noire)
+    engineModel.traverse((child) => {
+        if (child.isMesh && !child.material.emissive) {
+            child.material.emissive = new THREE.Color(0x000000);
+        }
+    });
+    prepareMaterials(engineModel);
+
+    carGroup.add(engineModel);
 });
 
 window.addEventListener('resize', () => {
@@ -140,322 +174,340 @@ window.addEventListener('resize', () => {
     camera.aspect = sizes.width / sizes.height;
     camera.updateProjectionMatrix();
     renderer.setSize(sizes.width, sizes.height);
-    cssRenderer.setSize(sizes.width, sizes.height);
 });
 
 let isAutoRotating = true;
 const cameraLookAtTarget = new THREE.Vector3(0, -3, 0);
-let uiVisible = true; // Nouvelle variable pour gérer l'affichage de l'interface
+let isCockpitView = false;
+let uiVisible = true; // Affichage des boîtes et des lignes
+
+// Tourne la voiture vers un angle donné par le chemin le plus court.
+// (La rotation automatique fait grandir l'angle sans fin : sans ça, la voiture pouvait faire 10 tours sur elle-même.)
+function rotateCarTo(angle, duration = 1.5) {
+    gsap.killTweensOf(carGroup.rotation);
+    const TWO_PI = Math.PI * 2;
+    const current = carGroup.rotation.y;
+    let delta = (angle - current) % TWO_PI;
+    if (delta > Math.PI) delta -= TWO_PI;
+    if (delta < -Math.PI) delta += TWO_PI;
+    gsap.to(carGroup.rotation, { y: current + delta, duration: duration, ease: "power2.inOut" });
+}
+
+function moveCamera(camPos, lookPos) {
+    gsap.to(camera.position, { x: camPos.x, y: camPos.y, z: camPos.z, duration: 1.5, ease: "power2.inOut" });
+    gsap.to(cameraLookAtTarget, { x: lookPos.x, y: lookPos.y, z: lookPos.z, duration: 1.5, ease: "power2.inOut" });
+}
+
+// Remet toute la voiture dans son état normal (opacité, couleurs). keepXRay = on laisse la transparence en place.
+function resetCarMaterials(keepXRay = false) {
+    carGroup.traverse((child) => {
+        if (!child.isMesh || !child.material) return;
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+        materials.forEach(mat => {
+            if (mat.userData.origTransparent === undefined) {
+                mat.userData.origTransparent = mat.transparent;
+                mat.userData.origDepthWrite = mat.depthWrite;
+            }
+            gsap.to(mat, {
+                opacity: 1,
+                duration: 0.5,
+                onComplete: () => {
+                    if (!keepXRay) {
+                        mat.transparent = mat.userData.origTransparent;
+                        mat.depthWrite = mat.userData.origDepthWrite;
+                    }
+                }
+            });
+
+            if (child.userData.originalEmissive && mat.emissive) {
+                gsap.to(mat.emissive, {
+                    r: child.userData.originalEmissive.r,
+                    g: child.userData.originalEmissive.g,
+                    b: child.userData.originalEmissive.b,
+                    duration: 0.5,
+                    onComplete: () => { mat.emissiveIntensity = child.userData.originalEmissiveIntensity ?? 1; }
+                });
+            }
+        });
+    });
+}
+
+// --- NAVIGATION (menu du haut) ---
+const modalContainer = document.getElementById('modal-container');
+const modalContent = document.getElementById('modal-content');
 
 document.querySelectorAll('.cam-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        const target = e.target.getAttribute('data-target');
-        const dash = document.getElementById('steering-dash');
-        
-        dash.classList.add('hidden');
-        isAutoRotating = (target === 'auto'); 
-        
-        // GESTION DE L'INTERFACE (Cacher boîtes au passage en cockpit)
+        const target = e.currentTarget.getAttribute('data-target');
+        cockpitScreens.hide();
+        resetScreenFocus();
+
+        // Si une fiche était ouverte, on la ferme et on éteint les pièces en surbrillance
+        if (modalContainer.classList.contains('open')) {
+            modalContainer.classList.remove('open');
+            resetCarMaterials();
+        }
+
+        isAutoRotating = (target === 'auto');
+
+        // Cacher les boîtes en vue cockpit
         uiVisible = (target !== 'cockpit');
-        if (!uiVisible) {
-            gsap.to('.panel', { opacity: 0, duration: 0.5 });
-            document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
-        } else {
-            gsap.to('.panel', { opacity: 1, duration: 0.5 });
-            document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'auto');
-        }
-        
+        isCockpitView = (target === 'cockpit');
+        gsap.to('.panel', { opacity: uiVisible ? 1 : 0, duration: 0.5 });
+        document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = uiVisible ? 'auto' : 'none');
+
         let camPos = { x: 6, y: -1, z: 7 };
-        let lookPos = { x: 0, y: -3, z: 0 }; 
-        
-        if(target === 'front') {
+        let lookPos = { x: 0, y: -3, z: 0 };
+
+        if (target === 'front') {
+            rotateCarTo(0);
             camPos = { x: 0, y: -2, z: 8 };
-            lookPos = { x: 0, y: -3, z: 0 };
-        } else if(target === 'engine') {
+        } else if (target === 'engine') {
+            rotateCarTo(0);
             camPos = { x: 0, y: 1, z: -6 };
-            lookPos = { x: 0, y: -3, z: 0 };
-        } else if(target === 'cockpit') {
-            gsap.to(carGroup.rotation, { y: Math.PI, duration: 1.5, ease: "power2.inOut" });
-            camPos = { x: 0, y: -2.6, z: 0.5 }; 
-            lookPos = { x: 0, y: -2.6, z: -10 }; 
-            setTimeout(() => { dash.classList.remove('hidden'); }, 1200);
+        } else if (target === 'cockpit') {
+            rotateCarTo(Math.PI);
+            camPos = { x: 0, y: -2.6, z: 0.5 };
+            lookPos = { x: 0, y: -2.6, z: -10 };
+            setTimeout(() => { if (isCockpitView) cockpitScreens.show(); }, 1200);
         }
-        
-        gsap.to(camera.position, { x: camPos.x, y: camPos.y, z: camPos.z, duration: 1.5, ease: "power2.inOut" });
-        gsap.to(cameraLookAtTarget, { x: lookPos.x, y: lookPos.y, z: lookPos.z, duration: 1.5, ease: "power2.inOut" });
+
+        moveCamera(camPos, lookPos);
     });
 });
 
-const modalContainer = document.getElementById('modal-container');
-
-let engineModel = null;
-loader.load('models.engine/scene.gltf', (gltf) => {
-    engineModel = gltf.scene;
-    
-    // 1. Calcul de la taille réelle du moteur importé
-    const engineBox = new THREE.Box3().setFromObject(engineModel);
-    const engineSize = engineBox.getSize(new THREE.Vector3());
-    const maxDim = Math.max(engineSize.x, engineSize.y, engineSize.z);
-    
-    // 2. Réduction automatique (on force la taille max à 1.5 pour rentrer dans la F1)
-    const scale = 1 / maxDim;
-    engineModel.scale.set(scale, scale, scale);
-    
-    // 3. Placement (à ajuster si le moteur dépasse un peu)
-    engineModel.position.set(-0.19, 0, -1.2); 
-    // Préparation des matériaux du moteur pour qu'ils puissent briller
-    engineModel.traverse((child) => {
-        if (child.isMesh) {
-            child.material = child.material.clone();
-            // Si le modèle n'a pas de lumière interne, on lui en crée une éteinte (noire)
-            if (!child.material.emissive) {
-                child.material.emissive = new THREE.Color(0x000000);
-            }
-            child.userData.originalEmissive = child.material.emissive.clone();
-        }
-    });
-    
-    carGroup.add(engineModel);
-});
-
-const modalContent = document.getElementById('modal-content');
-
+// --- CLIC SUR UNE BOÎTE : fiche détaillée + surbrillance de la pièce ---
 document.querySelectorAll('.panel').forEach((panel, index) => {
     panel.addEventListener('click', () => {
         const templateId = panel.getAttribute('data-modal');
         if (panelsData[templateId]) {
             modalContent.innerHTML = panelsData[templateId];
         } else {
-            // Affiche directement l'ID manquant à l'écran pour t'aider à le trouver !
             modalContent.innerHTML = `<p style="color: red;">Erreur : La clé <b>'${templateId}'</b> est introuvable dans content.js</p>`;
             console.log("Il manque cette clé dans content.js :", templateId);
         }
         modalContainer.classList.add('open');
-        isAutoRotating = false;
+        cockpitScreens.hide();
+        resetScreenFocus();
+        isCockpitView = false;
 
-        // Bloc SÉCURISÉ pour la couleur de la pièce
-        modalContainer.classList.add('open');
-        
-        // 1. ARRÊT ET RÉALIGNEMENT DE LA VOITURE
+        // 1. Arrêt et réalignement de la voiture
         isAutoRotating = false;
-        gsap.killTweensOf(carGroup.rotation); // Sécurité : coupe toute animation de rotation précédente
-        const currentRot = carGroup.rotation.y;
-        const targetRot = Math.round(currentRot / (Math.PI * 2)) * (Math.PI * 2);
-        gsap.to(carGroup.rotation, { y: targetRot, duration: 1.5, ease: "power2.inOut" });
-        if (pointObjects.length > 0) {
-            try {
-                // 1. On réinitialise l'opacité et les couleurs de toute la voiture
+        rotateCarTo(0);
+
+        if (pointObjects.length === 0) return;
+        try {
+            const isXRay = (panel.id === 'panel-0');
+
+            // 2. On remet toute la voiture à l'état normal
+            resetCarMaterials(isXRay);
+
+            // 3. Effet Rayon X pour le Panel 0 : tout devient transparent sauf le moteur
+            if (isXRay && engineModel) {
+                const engineMeshes = new Set();
+                engineModel.traverse((c) => { if (c.isMesh) engineMeshes.add(c); });
+
                 carGroup.traverse((child) => {
-                    if (child.isMesh && child.material) {
+                    if (child.isMesh && !engineMeshes.has(child)) {
                         const materials = Array.isArray(child.material) ? child.material : [child.material];
-                        
                         materials.forEach(mat => {
-                            if (mat.userData.origTransparent === undefined) {
-                                mat.userData.origTransparent = mat.transparent;
-                                mat.userData.origDepthWrite = mat.depthWrite;
-                            }
-                            
-                            const isXRay = (panel.id === 'panel-0');
-                            
-                            gsap.to(mat, { 
-                                opacity: 1, 
-                                duration: 0.5,
-                                onComplete: () => {
-                                    // On ne rend la solidité QUE si on n'est pas en train de faire l'effet Rayon X
-                                    if (!isXRay) {
-                                        mat.transparent = mat.userData.origTransparent;
-                                        mat.depthWrite = mat.userData.origDepthWrite;
-                                    }
-                                }
-                            });
-                            
-                            if (child.userData.originalEmissive && mat.emissive) {
-                                gsap.to(mat.emissive, { 
-                                    r: child.userData.originalEmissive.r, 
-                                    g: child.userData.originalEmissive.g, 
-                                    b: child.userData.originalEmissive.b, 
-                                    duration: 0.5 
-                                });
-                            }
+                            mat.transparent = true;
+                            mat.depthWrite = false;
+                            gsap.to(mat, { opacity: 0.15, duration: 1.5, overwrite: 'auto' });
                         });
                     }
                 });
-
-                // 2. Effet Rayon X pour le Panel 0
-                if (panel.id === 'panel-0' && engineModel) {
-                    carGroup.traverse((child) => {
-                        let isEnginePart = false;
-                        engineModel.traverse((engineChild) => { if (child === engineChild) isEnginePart = true; });
-                        
-                        if (child.isMesh && !isEnginePart) {
-                            const materials = Array.isArray(child.material) ? child.material : [child.material];
-                            materials.forEach(mat => {
-                                mat.transparent = true;
-                                mat.depthWrite = false; 
-                                gsap.to(mat, { opacity: 0.15, duration: 1.5 });
-                            });
-                        }
-                    });
-                }
-                // 2. NOUVEAU : On cherche TOUTES les pièces dans un rayon donné
-                const targetWorld = new THREE.Vector3();
-                pointObjects[index].anchor.getWorldPosition(targetWorld);
-                
-                let meshesToHighlight = [];
-                
-                // On récupère le rayon spécifique défini dans pointsData
-                const radius = pointObjects[index].radius;
-                
-                carGroup.traverse((child) => {
-                    if (child.isMesh && child.geometry && child.material && child.material.emissive) {
-                        if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
-                        
-                        if (child.geometry.boundingBox) {
-                            const center = new THREE.Vector3();
-                            child.geometry.boundingBox.getCenter(center);
-                            child.localToWorld(center);
-                            
-                            const dist = center.distanceTo(targetWorld);
-                            if (dist <= radius) {
-                                meshesToHighlight.push(child);
-                            }
-                        }
-                    }
-                });
-
-                if (panel.id === 'panel-0' && engineModel) {
-                    engineModel.traverse((child) => {
-                        if (child.isMesh && child.material) {
-                            meshesToHighlight.push(child);
-                        }
-                   });
-                }
-                // 3. On colore toutes les pièces trouvées dans le rayon
-                meshesToHighlight.forEach((mesh) => {
-                    const glowColor = new THREE.Color(0x00d2ff); 
-                    gsap.to(mesh.material.emissive, { 
-                        r: glowColor.r, 
-                        g: glowColor.g, 
-                        b: glowColor.b, 
-                        duration: 1 
-                    });
-                    mesh.material.emissiveIntensity = 2.5; // Intensité de la couleur
-                });
-            } catch (error) {
-                console.warn("Erreur silencieuse de surbrillance 3D :", error);
             }
+
+            // 4. On cherche toutes les pièces dans un rayon autour du point
+            const targetWorld = new THREE.Vector3();
+            pointObjects[index].anchor.getWorldPosition(targetWorld);
+            const radius = pointObjects[index].radius;
+            const meshesToHighlight = [];
+
+            carGroup.traverse((child) => {
+                if (child.isMesh && child.geometry && child.material && child.material.emissive) {
+                    if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+                    const center = new THREE.Vector3();
+                    child.geometry.boundingBox.getCenter(center);
+                    child.localToWorld(center);
+                    if (center.distanceTo(targetWorld) <= radius) meshesToHighlight.push(child);
+                }
+            });
+
+            if (isXRay && engineModel) {
+                engineModel.traverse((child) => {
+                    if (child.isMesh && child.material) meshesToHighlight.push(child);
+                });
+            }
+
+            // 5. On colore toutes les pièces trouvées
+            const glowColor = new THREE.Color(0x00d2ff);
+            meshesToHighlight.forEach((mesh) => {
+                gsap.to(mesh.material.emissive, { r: glowColor.r, g: glowColor.g, b: glowColor.b, duration: 1, overwrite: 'auto' });
+                mesh.material.emissiveIntensity = 2.5;
+            });
+        } catch (error) {
+            console.warn("Erreur silencieuse de surbrillance 3D :", error);
         }
-        
+
         // --- RÉGLAGES DES CAMÉRAS (C'EST ICI POUR LE ZOOM) ---
-        
         let targetCamPos = { x: 4, y: -1, z: 6 };
         let targetLookPos = { x: -2, y: -3, z: 0 };
 
         if (panel.id === 'panel-0') {
-            // App Conception (Capot Moteur) - On garde intact car c'était parfait
-            targetCamPos = { x: 4.0, y: -1.0, z: 0.5 }; 
-            targetLookPos = { x: 1.5, y: -2.9, z: -1.5 }; 
-            
+            // App Conception (Capot Moteur)
+            targetCamPos = { x: 4.0, y: -1.0, z: 0.5 };
+            targetLookPos = { x: 1.5, y: -2.9, z: -1.5 };
         } else if (panel.id === 'panel-1') {
-            // Canada (Aileron Avant) - Caméra placée loin DEVANT la voiture (Z=6.5) avec léger angle à droite (X=2.0)
-            targetCamPos = { x: 2.0, y: -1.5, z: 6.5 }; 
-            targetLookPos = { x: 0.5, y: -3.0, z: 3.2 }; 
-            
+            // Canada (Aileron Avant)
+            targetCamPos = { x: 2.0, y: -1.5, z: 6.5 };
+            targetLookPos = { x: 0.5, y: -3.0, z: 3.2 };
         } else if (panel.id === 'panel-2') {
-            // Order Tracker (Roue Avant Droite) - Vue de profil pur (Z de la caméra = Z de la roue) pour être du bon côté
+            // Order Tracker (Roue Avant Droite)
             targetCamPos = { x: 4.5, y: -1.5, z: 1.6 };
             targetLookPos = { x: 2.0, y: -2.8, z: 1.6 };
-            
         } else if (panel.id === 'panel-3') {
-            // Class Leader (Aileron Arrière) - Caméra placée DERRIÈRE la voiture (Z=-6.5) regardant vers l'aileron (Z=-3.7)
-            targetCamPos = { x: 2, y: -1.2, z: 4.0 }; 
+            // Class Leader (Aileron Arrière)
+            targetCamPos = { x: 2, y: -1.2, z: 4.0 };
             targetLookPos = { x: 1.5, y: -1.8, z: -1.5 };
         }
 
-        gsap.to(camera.position, { x: targetCamPos.x, y: targetCamPos.y, z: targetCamPos.z, duration: 1.5, ease: "power2.inOut" });
-        gsap.to(cameraLookAtTarget, { x: targetLookPos.x, y: targetLookPos.y, z: targetLookPos.z, duration: 1.5, ease: "power2.inOut" });
+        moveCamera(targetCamPos, targetLookPos);
     });
 });
 
 document.getElementById('close-modal').addEventListener('click', () => {
     modalContainer.classList.remove('open');
     isAutoRotating = true;
-    const currentRot = carGroup.rotation.y;
-        const targetRot = Math.round(currentRot / (Math.PI * 2)) * (Math.PI * 2);
-        gsap.to(carGroup.rotation, { y: targetRot, duration: 1.5, ease: "power2.inOut" });
-    
-    // Extinction sécurisée à la fermeture
-    
-    try {
-        carGroup.traverse((child) => {
-            if (child.isMesh && child.material) {
-                const materials = Array.isArray(child.material) ? child.material : [child.material];
-                materials.forEach(mat => {
-                    gsap.to(mat, { 
-                        opacity: 1, 
-                        duration: 0.5,
-                        onComplete: () => {
-                            if (mat.userData.origTransparent !== undefined) {
-                                mat.transparent = mat.userData.origTransparent;
-                                mat.depthWrite = mat.userData.origDepthWrite;
-                            }
-                        }
-                    });
-                    
-                    if (child.userData.originalEmissive && mat.emissive) {
-                        gsap.to(mat.emissive, { 
-                            r: child.userData.originalEmissive.r, 
-                            g: child.userData.originalEmissive.g, 
-                            b: child.userData.originalEmissive.b, 
-                            duration: 0.5 
-                        });
-                    }
-                });
-            }
-        });
-    } catch (error) {}
-    
-    gsap.to(camera.position, { x: 6, y: -1, z: 7, duration: 1.5, ease: "power2.inOut" });
-    gsap.to(cameraLookAtTarget, { x: 0, y: -3, z: 0, duration: 1.5, ease: "power2.inOut" });
+    resetCarMaterials();
+    moveCamera({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
 });
 
+// --- ÉCRANS DU COCKPIT : clic = on plonge dans l'écran, la page s'affiche en plein écran ---
+const COCKPIT_CAM = { x: 0, y: -2.6, z: 0.5 };
+const COCKPIT_LOOK = { x: 0, y: -2.6, z: -10 };
+const screenNav = document.getElementById('screen-nav');
+const screenNavLabel = document.getElementById('sn-label');
+const screenPage = document.getElementById('screen-page');
+const spTitle = document.getElementById('sp-title');
+const spDots = document.getElementById('sp-dots');
+const spBody = document.getElementById('sp-body');
+let focusedScreen = null;
+let pageTimer = null;
+
+// Affiche (ou met à jour) la page web plein écran de l'écran visé
+function renderScreenPage() {
+    if (!focusedScreen) return;
+    spTitle.textContent = focusedScreen.title.replace(' // ', ' · ');
+    spDots.innerHTML = Array.from({ length: focusedScreen.pageCount }, (_, i) =>
+        `<i class="${i === focusedScreen.page ? 'on' : ''}"></i>`).join('');
+    spBody.innerHTML = pageToHTML(focusedScreen.pageBlocks);
+    spBody.classList.remove('swap'); void spBody.offsetWidth; spBody.classList.add('swap');
+    screenNavLabel.textContent = `${focusedScreen.pageName}  (${focusedScreen.page + 1}/${focusedScreen.pageCount})`;
+}
+// Sort du mode plein écran sans bouger la caméra (utilisé par le menu et les fiches)
+function resetScreenFocus() {
+    focusedScreen = null;
+    if (pageTimer) { pageTimer.kill(); pageTimer = null; }
+    screenPage.classList.remove('visible');
+    screenNav.classList.add('hidden');
+    cockpitScreens.setFocused(null);
+}
+function focusScreen(screen) {
+    focusedScreen = screen;
+    cockpitScreens.setFocused(screen);
+    const pose = cockpitScreens.focusPose(screen, camera);
+    // la caméra "entre" dans l'écran…
+    gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
+    gsap.to(camera.position, { x: pose.position.x, y: pose.position.y, z: pose.position.z, duration: 1.3, ease: "power2.in" });
+    gsap.to(cameraLookAtTarget, { x: pose.target.x, y: pose.target.y, z: pose.target.z, duration: 1.3, ease: "power2.in" });
+    // …puis la page web prend le relais (texte net)
+    if (pageTimer) pageTimer.kill();
+    pageTimer = gsap.delayedCall(1.05, () => {
+        renderScreenPage();
+        screenPage.classList.add('visible');
+        screenNav.classList.remove('hidden');
+    });
+}
+function unfocusScreen() {
+    if (!focusedScreen) return;
+    resetScreenFocus();
+    moveCamera(COCKPIT_CAM, COCKPIT_LOOK);
+}
+function changePage(step) {
+    if (!focusedScreen || !screenPage.classList.contains('visible')) return;
+    focusedScreen.setPage(focusedScreen.page + step);
+    renderScreenPage();
+}
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+function pointerRay(e) {
+    pointer.set((e.clientX / sizes.width) * 2 - 1, -(e.clientY / sizes.height) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+}
+canvas.addEventListener('click', (e) => {
+    if (!cockpitScreens.isActive() || focusedScreen) return;
+    pointerRay(e);
+    const screen = cockpitScreens.pick(raycaster);
+    if (screen) focusScreen(screen);
+});
+window.addEventListener('pointermove', (e) => {
+    if (!cockpitScreens.isActive() || focusedScreen) { canvas.style.cursor = ''; return; }
+    pointerRay(e);
+    canvas.style.cursor = cockpitScreens.pick(raycaster) ? 'pointer' : '';
+});
+document.getElementById('sn-prev').addEventListener('click', () => changePage(-1));
+document.getElementById('sn-next').addEventListener('click', () => changePage(1));
+document.getElementById('sn-close').addEventListener('click', unfocusScreen);
+window.addEventListener('keydown', (e) => {
+    if (!focusedScreen) return;
+    if (e.key === 'ArrowRight') changePage(1);
+    else if (e.key === 'ArrowLeft') changePage(-1);
+    else if (e.key === 'Escape') unfocusScreen();
+});
+
+// --- BOUCLE D'ANIMATION ---
+const clock = new THREE.Clock();
+const screenPosition = new THREE.Vector3();
+
 const tick = () => {
-    if(isAutoRotating) carGroup.rotation.y -= 0.02;
+    const delta = Math.min(clock.getDelta(), 0.1); // 0.1 max : évite un saut après un changement d'onglet
+    if (isAutoRotating) carGroup.rotation.y -= AUTO_ROTATE_SPEED * delta;
     camera.lookAt(cameraLookAtTarget);
+    cockpitScreens.update(delta);
 
-    if(pointObjects.length > 0) {
-        for(const pt of pointObjects) {
-            const screenPosition = new THREE.Vector3();
-            pt.anchor.getWorldPosition(screenPosition);
-            screenPosition.project(camera);
+    for (const pt of pointObjects) {
+        pt.anchor.getWorldPosition(screenPosition);
+        screenPosition.project(camera);
 
-            if(screenPosition.z > 1 || !uiVisible) {
-                pt.targetEl.classList.add('hidden');
-                pt.lineEl.style.opacity = 0;
-            } else {
-                pt.targetEl.classList.remove('hidden');
-                pt.lineEl.style.opacity = 1;
+        if (screenPosition.z > 1 || !uiVisible) {
+            pt.targetEl.classList.add('hidden');
+            pt.lineEl.style.opacity = 0;
+        } else {
+            pt.targetEl.classList.remove('hidden');
+            pt.lineEl.style.opacity = 1;
 
-                const targetX = (screenPosition.x * 0.5 + 0.5) * sizes.width;
-                const targetY = (-screenPosition.y * 0.5 + 0.5) * sizes.height;
+            const targetX = (screenPosition.x * 0.5 + 0.5) * sizes.width;
+            const targetY = (-screenPosition.y * 0.5 + 0.5) * sizes.height;
 
-                pt.targetEl.style.left = `${targetX}px`;
-                pt.targetEl.style.top = `${targetY}px`;
+            pt.targetEl.style.left = `${targetX}px`;
+            pt.targetEl.style.top = `${targetY}px`;
 
-                const panelRect = pt.panelEl.getBoundingClientRect();
-                const panelX = pt.side === 'left' ? panelRect.right : panelRect.left;
-                const panelY = panelRect.top + (panelRect.height / 2);
+            const panelRect = pt.panelEl.getBoundingClientRect();
+            const panelX = pt.side === 'left' ? panelRect.right : panelRect.left;
+            const panelY = panelRect.top + (panelRect.height / 2);
 
-                pt.lineEl.setAttribute('x1', panelX);
-                pt.lineEl.setAttribute('y1', panelY);
-                pt.lineEl.setAttribute('x2', targetX);
-                pt.lineEl.setAttribute('y2', targetY);
-            }
+            pt.lineEl.setAttribute('x1', panelX);
+            pt.lineEl.setAttribute('y1', panelY);
+            pt.lineEl.setAttribute('x2', targetX);
+            pt.lineEl.setAttribute('y2', targetY);
         }
     }
     renderer.render(scene, camera);
-    cssRenderer.render(scene, camera);
     requestAnimationFrame(tick);
 };
 
