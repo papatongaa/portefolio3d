@@ -1,0 +1,68 @@
+# Met le portfolio en ligne automatiquement à chaque "push" sur la branche principale.
+#   -> https://tanguy-pavat.pages.dev  (Cloudflare Pages)
+#
+# Même méthode que CarZero. Il faut 2 "secrets" dans GitHub
+# (Settings > Secrets and variables > Actions > New repository secret) :
+#   CLOUDFLARE_API_TOKEN  = jeton Cloudflare avec la permission "Cloudflare Pages : Edit"
+#   CLOUDFLARE_ACCOUNT_ID = l'identifiant de ton compte Cloudflare
+# Tant que ces 2 secrets ne sont pas ajoutés, rien n'est envoyé (et ce n'est pas une erreur).
+name: Deploy portfolio
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}   # permet de le lancer à la main depuis l'onglet Actions
+
+concurrency:
+  group: deploy-portfolio
+  cancel-in-progress: true
+
+env:
+  PROJECT: tanguy-pavat
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Cloudflare secrets
+        id: secrets
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## ⏸️ Nothing sent: the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set yet" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # On ne publie que les fichiers du site (pas .github, pas les notes).
+      - name: Prepare the site folder
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          mkdir -p _site
+          cp index.html script.js style.css cockpit-screens.js content.js garage.jpg _site/
+          cp -r assets _site/assets
+          # Le navigateur doit toujours revérifier le code (sinon Cloudflare peut garder d'anciennes versions des heures).
+          printf '/\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/*.js\n  Cache-Control: no-cache\n/*.css\n  Cache-Control: no-cache\n' > _site/_headers
+          ls -la _site _site/assets
+
+      - name: Create the Cloudflare project (first time only)
+        if: steps.secrets.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create ${{ env.PROJECT }} --production-branch=main
+
+      - name: Deploy
+        if: steps.secrets.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy _site --project-name=${{ env.PROJECT }} --branch=main --commit-dirty=true
