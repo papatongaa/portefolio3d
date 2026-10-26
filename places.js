@@ -66,7 +66,7 @@ export const PLACES = [
         id: 'lille', country: '250', type: 'work',
         name: 'Lille', lat: 50.6292, lon: 3.0573,
         eyebrow: 'STUDY · FRANCE', title: 'University of Lille', hook: 'Master 2 · International Sport Administration',
-        text: 'Where I study, and where I am class leader: the main contact between students and teaching staff.'
+        text: 'Where I study, and where I am class leader: the main contact between students and teaching staff. Also the base of many of my volunteer experiences.'
     },
     {
         id: 'spa', country: '056', type: 'gp',
@@ -79,5 +79,83 @@ export const PLACES = [
         name: 'Monza', lat: 45.6156, lon: 9.2811,
         eyebrow: 'GRAND PRIX · ITALY', title: 'Italian Grand Prix', hook: 'Autodromo Nazionale Monza · 2023',
         text: '', photos: []
-    }
+    },
+    {
+        id: 'paulricard', country: '250', type: 'gp', from: 'lille',
+        name: 'Paul Ricard', lat: 43.2506, lon: 5.7919,
+        eyebrow: 'GRAND PRIX · FRANCE', title: 'French Grand Prix', hook: 'Circuit Paul Ricard, Le Castellet · 2022',
+        text: '', photos: []
+    },
+    {
+        id: 'lemans', country: '250', type: 'gp', from: 'lille',
+        name: 'Le Mans', lat: 47.95, lon: 0.2078,
+        eyebrow: 'ENDURANCE · FRANCE', title: 'Le Mans', hook: 'GP Explorer 2023 · 24 Hours of Le Mans 2024',
+        text: '', photos: []
+    },
+    {
+        id: 'laquais', country: '250', type: 'gp', from: 'lille',
+        name: 'Circuit du Laquais', lat: 45.397, lon: 5.222,
+        eyebrow: 'DRIVING · FRANCE', title: 'Circuit du Laquais', hook: 'Driving course · 2022',
+        text: '', photos: []
+    },
+    {
+        id: 'romans', country: '250', type: 'work', lab: 'l', from: 'lille',
+        name: 'Romans-sur-Isère', lat: 45.0425, lon: 5.0508,
+        eyebrow: 'VOLUNTEERING · FRANCE', title: 'Romans-sur-Isère', hook: 'Volunteer experiences',
+        text: '', photos: []
+    },
+    {
+        id: 'invercargill', country: '554', type: 'gp', lab: 'l', from: 'cromwell',
+        name: 'Invercargill', lat: -46.4132, lon: 168.3538,
+        eyebrow: 'RALLY · NEW ZEALAND', title: 'Invercargill', hook: 'Rally with Paddon Racing Group',
+        text: '', photos: []
+    },
+    {
+        id: 'dunedin', country: '554', type: 'gp', from: 'cromwell',
+        name: 'Dunedin', lat: -45.8788, lon: 170.5028,
+        eyebrow: 'RALLY · NEW ZEALAND', title: 'Dunedin', hook: 'Rally with Paddon Racing Group',
+        text: '', photos: []
+    },
+    {
+        id: 'hastings', country: '554', type: 'gp', from: 'cromwell',
+        name: 'Hastings', lat: -39.6381, lon: 176.8492,
+        eyebrow: 'RALLY · NEW ZEALAND', title: 'Hastings', hook: 'Rally set up remotely',
+        text: '', photos: []
+    },
+    {
+        id: 'whakatane', country: '554', type: 'gp', from: 'cromwell',
+        name: 'Whakatane', lat: -37.9533, lon: 176.9922,
+        eyebrow: 'RALLY · NEW ZEALAND', title: 'Whakatane · Bay of Plenty', hook: 'Upcoming rally',
+        text: '', photos: []
+    },
+    {
+        id: 'us-ca', country: '840', type: 'visit', from: [39, -98],
+        name: 'California', lat: 36.78, lon: -119.42,
+        eyebrow: 'UNITED STATES', title: 'California', hook: 'Visited',
+        text: '', photos: []
+    },
+    {
+        id: 'us-az', country: '840', type: 'visit', from: [39, -98],
+        name: 'Arizona', lat: 34.2, lon: -111.66,
+        eyebrow: 'UNITED STATES', title: 'Arizona', hook: 'Visited',
+        text: '', photos: []
+    },
+    {
+        id: 'us-co', country: '840', type: 'visit', from: [39, -98],
+        name: 'Colorado', lat: 39.0, lon: -105.55,
+        eyebrow: 'UNITED STATES', title: 'Colorado', hook: 'Visited',
+        text: '', photos: []
+    },
+    {
+        id: 'us-nv', country: '840', type: 'visit', from: [39, -98],
+        name: 'Nevada', lat: 38.8, lon: -116.42,
+        eyebrow: 'UNITED STATES', title: 'Nevada', hook: 'Visited',
+        text: '', photos: []
+    },
+    {
+        id: 'us-ny', country: '840', type: 'visit', from: [39, -98],
+        name: 'New York', lat: 42.9, lon: -75.5,
+        eyebrow: 'UNITED STATES', title: 'New York', hook: 'Visited',
+        text: '', photos: []
+    },
 ];

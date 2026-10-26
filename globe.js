@@ -189,18 +189,23 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             else if (c.hub) dests.push({ lat: c.hub[0], lon: c.hub[1], work: false });
         }
         for (const [, la, lo] of EXTRA_ARCS) dests.push({ lat: la, lon: lo, work: false });
+        // sous-arcs : d'un point de départ (épingle ou coordonnées) vers une épingle, visibles quand on zoome sur le pays
+        for (const pl of PLACES.filter((q) => q.from)) {
+            const src = typeof pl.from === 'string' ? PLACES.find((q) => q.id === pl.from) : { lat: pl.from[0], lon: pl.from[1] };
+            dests.push({ from: ll(src.lon, src.lat), lat: pl.lat, lon: pl.lon, work: true, scope: pl.country });
+        }
         dests.forEach((d) => {
-            const B = ll(d.lon, d.lat), ang = origin.angleTo(B), pts = [];
+            const A = d.from || origin, B = ll(d.lon, d.lat), ang = A.angleTo(B), pts = [];
             for (let i = 0; i <= 64; i++) {
                 const t = i / 64, sn = Math.sin(ang);
-                const q = origin.clone().multiplyScalar(Math.sin((1 - t) * ang) / sn).add(B.clone().multiplyScalar(Math.sin(t * ang) / sn));
-                pts.push(q.normalize().multiplyScalar(1 + (0.03 + 0.2 * (ang / Math.PI)) * Math.sin(Math.PI * t)));
+                const q = A.clone().multiplyScalar(Math.sin((1 - t) * ang) / sn).add(B.clone().multiplyScalar(Math.sin(t * ang) / sn));
+                pts.push(q.normalize().multiplyScalar(1 + (d.scope ? 0.012 + 0.12 * (ang / Math.PI) : 0.03 + 0.2 * (ang / Math.PI)) * Math.sin(Math.PI * t)));
             }
-            const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 96, d.work ? 0.0032 : 0.002, 5, false);
+            const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 96, d.scope ? 0.0007 : d.work ? 0.0032 : 0.002, 5, false);
             const base = d.work ? 0.95 : 0.6;
             const mat = new THREE.MeshBasicMaterial({ color: d.work ? 0x00d2ff : 0x6cc0ff, transparent: true, opacity: base });
             const mesh = new THREE.Mesh(geo, mat);
-            mesh.userData.base = base;
+            mesh.userData.base = base; mesh.userData.scope = d.scope || null; mesh.visible = !d.scope;
             mesh.geometry.setDrawRange(0, 0);
             spin.add(mesh); arcs.push(mesh);
         });
@@ -221,6 +226,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
 
     function revealArcs() {
         arcs.forEach((a, i) => {
+            if (a.userData.scope) { a.geometry.setDrawRange(0, 96 * 30); return; }
             const o = { t: 0 };
             gsap.to(o, { t: 1, duration: 1.8, delay: 0.8 + i * 0.12, ease: 'power2.inOut',
                 onUpdate: () => a.geometry.setDrawRange(0, Math.floor(o.t * 96) * 30) });
@@ -242,7 +248,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         gsap.to(S, { dist: d, duration: 2, ease: 'power3.out' });
         gsap.to(root.scale, { x: 1, y: 1, z: 1, duration: 1.6, ease: 'power3.out' });
         arcs.forEach((a) => a.geometry.setDrawRange(0, 0));
-        arcFade.v = 1; arcs.forEach((a) => { a.material.opacity = a.userData.base; a.visible = true; });
+        arcFade.v = 1; arcs.forEach((a) => { a.material.opacity = a.userData.base; a.visible = !a.userData.scope; });
         if (globeMesh) revealArcs(); else load();
         requestAnimationFrame(() => el.ui.classList.add('on'));
     }
@@ -288,7 +294,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         let dy = (yaw - S.yaw) % TWO; if (dy > Math.PI) dy -= TWO; if (dy < -Math.PI) dy += TWO;
         gsap.killTweensOf(S);
         gsap.to(S, { yaw: S.yaw + dy, pitch: Math.max(-1.3, Math.min(1.3, lat * D2R)), dist, duration: 1.7, ease: 'power2.inOut' });
-        fadeArcs(0);
+        fadeArcs();
         setFocusUI(id);
         drag.vx = drag.vy = 0;
         buildPatch(id, lon, lat, vis);
@@ -296,7 +302,12 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
 
     // Les arcs disparaissent pendant le zoom sur un pays (vus de près, ils deviendraient énormes)
     function fadeArcs(to) {
-        gsap.to(arcFade, { v: to, duration: 0.8, onUpdate: () => arcs.forEach((a) => { a.material.opacity = a.userData.base * arcFade.v; a.visible = arcFade.v > 0.02; }) });
+        // monde : arcs principaux · zoom sur un pays : seulement ses sous-arcs
+        arcs.forEach((a) => { a.userData.show = focusId ? a.userData.scope === focusId : !a.userData.scope; });
+        gsap.killTweensOf(arcFade);
+        arcFade.v = 0;
+        arcs.forEach((a) => { a.material.opacity = 0; a.visible = a.userData.show; });
+        gsap.to(arcFade, { v: 1, duration: 1.2, delay: focusId ? 1.2 : 0.2, onUpdate: () => arcs.forEach((a) => { a.material.opacity = a.userData.base * arcFade.v; }) });
     }
 
     function backToWorld() {
@@ -305,7 +316,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         setFocusUI(null);
         gsap.killTweensOf(S);
         gsap.to(S, { pitch: Math.max(0.2, Math.min(0.9, S.pitch)), dist: baseDistance(), duration: 1.5, ease: 'power2.inOut' });
-        fadeArcs(1);
+        fadeArcs();
         if (patch) {
             const old = patch;
             patch = null;
@@ -484,7 +495,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             if (on) {
                 v.project(camera);
                 // le nom passe à gauche de la pastille quand elle est près du bord droit de l'écran
-                const left = o.p.id === 'austria' || (v.x * 0.5 + 0.5) * sz.w > sz.w * 0.62;
+                const left = o.p.id === 'austria' || o.p.lab === 'l' || (v.x * 0.5 + 0.5) * sz.w > sz.w * 0.62;
                 if (left !== o.left) { o.left = left; o.el.classList.toggle('lab-l', left); }
                 o.el.style.transform = `translate(${((v.x * 0.5 + 0.5) * sz.w).toFixed(1)}px, ${((-v.y * 0.5 + 0.5) * sz.h).toFixed(1)}px)`;
             }

@@ -332,3 +332,5 @@ body.globe-mode .credits { opacity: 0; pointer-events: none; }
 #modal-content .m-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
 #modal-content .m-photos img { width: 100%; border-radius: 8px; border: 1px solid rgba(0,210,255,0.25); display: block; }
 #modal-content .m-photos img:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
+
+.gpin-visit { --c: #6cc0ff; }
