@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COUNTRIES, PLACES, ORIGIN, EXTRA_ARCS } from './places.js';
+import { COUNTRIES, PLACES, ORIGIN } from './places.js';
 
 const D2R = Math.PI / 180;
 const AUTO_SPIN = 0.07;            // rad/s : le globe tourne doucement tout seul
@@ -185,12 +185,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         // arcs depuis l'Autriche : un par pays (les pays de travail en cyan épais, les autres plus fins)
         const origin = ll(ORIGIN.lon, ORIGIN.lat);
         const dests = [];
-        for (const [id, c] of Object.entries(COUNTRIES)) {
-            const pl = PLACES.find((q) => q.country === id && q.arc);
-            if (pl) dests.push({ lat: pl.lat, lon: pl.lon, work: pl.type === 'work' });
-            else if (c.hub) dests.push({ lat: c.hub[0], lon: c.hub[1], work: false });
-        }
-        for (const [, la, lo] of EXTRA_ARCS) dests.push({ lat: la, lon: lo, work: false });
+        for (const pl of PLACES.filter((q) => q.arc || q.type === 'city')) dests.push({ lat: pl.lat, lon: pl.lon, work: pl.type === 'work' });
         // sous-arcs : d'un point de départ (épingle ou coordonnées) vers une épingle, visibles quand on zoome sur le pays
         for (const pl of PLACES.filter((q) => q.from)) {
             const src = typeof pl.from === 'string' ? PLACES.find((q) => q.id === pl.from) : { lat: pl.from[0], lon: pl.from[1] };
@@ -212,7 +207,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             mesh.userData.drawn = d.scope ? 1 : 0;
             spin.add(mesh); arcs.push(mesh);
             // pastille d'arrivée (sauf si une épingle à étiquette est déjà là)
-            const hasPin = PLACES.some((q) => Math.abs(q.lat - d.lat) < 0.3 && Math.abs(q.lon - d.lon) < 0.3);
+            const hasPin = PLACES.some((q) => q.world && Math.abs(q.lat - d.lat) < 0.3 && Math.abs(q.lon - d.lon) < 0.3);
             if (!hasPin) {
                 const dot = new THREE.Mesh(new THREE.SphereGeometry(0.009, 12, 8), new THREE.MeshBasicMaterial({ color: d.work ? 0x9be8ff : 0xbfe3ff }));
                 dot.position.copy(B).multiplyScalar(1.004);
@@ -225,9 +220,9 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         for (const p of PLACES) {
             const b = document.createElement('button');
             b.className = `gpin gpin-${p.type} ${p.lab === 'l' || p.id === 'austria' ? 'lab-l' : ''}`;
-            b.setAttribute('aria-label', `${p.name}: open details`);
+            if (p.type !== 'city') b.setAttribute('aria-label', `${p.name}: open details`);
             b.innerHTML = `<i></i><span>${p.name}</span>`;
-            b.addEventListener('click', (e) => { e.stopPropagation(); onPlace && onPlace(p); });
+            if (p.type !== 'city') b.addEventListener('click', (e) => { e.stopPropagation(); onPlace && onPlace(p); });
             el.labels.appendChild(b);
             pinEls.set(p.id, { el: b, p, v: ll(p.lon, p.lat), shown: false });
         }
@@ -575,7 +570,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
             if (on) {
                 v.project(camera);
                 // le nom passe à gauche de la pastille quand elle est près du bord droit de l'écran
-                const left = o.p.id === 'austria' || o.p.lab === 'l' || (v.x * 0.5 + 0.5) * sz.w > sz.w * 0.62;
+                const left = o.p.id === 'austria' || o.p.id === 'us-ny' || o.p.lab === 'l' || (v.x * 0.5 + 0.5) * sz.w > sz.w * 0.62;
                 if (left !== o.left) { o.left = left; o.el.classList.toggle('lab-l', left); }
                 o.el.style.transform = `translate(${((v.x * 0.5 + 0.5) * sz.w).toFixed(1)}px, ${((-v.y * 0.5 + 0.5) * sz.h).toFixed(1)}px)`;
             }

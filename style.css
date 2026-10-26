@@ -336,3 +336,9 @@ body.globe-mode .credits { opacity: 0; pointer-events: none; }
 .gpin-visit { --c: #6cc0ff; }
 
 .gpin span { pointer-events: none; }
+
+.gpin-city { --c: #8fc8ff; }
+.gpin-city.on { pointer-events: none; }
+.gpin-city i { width: 8px; height: 8px; margin: -4px 0 0 -4px; }
+.gpin-city i::after { display: none; }
+.gpin-city span { font-size: 0.64rem; padding: 2px 7px; border-color: rgba(143,200,255,0.45); color: #cfe6fa; text-transform: none; letter-spacing: 0.5px; }
