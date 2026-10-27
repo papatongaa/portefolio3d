@@ -387,3 +387,4 @@ body.garage3d:not(.globe-mode) .garage-bg { opacity: 0; }
 #screen-hud #sh-prev, #screen-hud #sh-next { padding: 10px 16px; font-size: 1rem; }
 #screen-hud .hidden { display: none; }
 @media (max-width:700px){ #screen-hud { gap: 6px; bottom: 4vh; } #screen-hud button, #screen-hud .sh-btn { padding: 9px 12px; font-size: .75rem; } }
+#screen-hud button, #screen-hud .sh-btn { white-space: nowrap; }

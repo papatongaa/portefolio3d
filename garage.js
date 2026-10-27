@@ -135,6 +135,11 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     drawSign();
     new THREE.TextureLoader().load(iconUrl, (icon) => { iconImg = icon.image; drawSign(); });
     function setScreen(content) { currentScreen = content; drawSign(); }
+    function setScreenPose(x, y, scale = 1) {   // y en monde ; null = position de repos
+        const px = x == null ? SIGN_X : x, py = y == null ? 4.6 : y - group.position.y, sc = x == null ? 1 : scale;
+        if (window.gsap) { window.gsap.to(sign.position, { x: px, y: py, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' }); window.gsap.to(sign.scale, { x: sc, y: sc, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' }); }
+        else { sign.position.set(px, py, sign.position.z); sign.scale.set(sc, sc, 1); }
+    }
 
     // ---------- porte de garage (mur de devant) ----------
     const doorTex = canvasTex(512, 512, (g, w, h) => {
@@ -218,7 +223,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     shadow.rotation.x = -Math.PI / 2; shadow.renderOrder = 3;
 
     return {
-        group, envMap, shadow, setScreen, screenCenter: new THREE.Vector3(SIGN_X, 4.6, -HALF),
+        group, envMap, shadow, setScreen, setScreenPose, screenCenter: new THREE.Vector3(SIGN_X, 4.6, -HALF),
         setFloorY(y) { group.position.y = y; },
         setVisible(v) { group.visible = v; }
     };

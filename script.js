@@ -391,6 +391,32 @@ function screenCam() {
     const d = mobile ? 7 : 8.5;
     return { cam: { x: c.x + 0.35, y: -3.95 + 3.4, z: c.z + d }, look: { x: c.x, y: -3.95 + 4.6, z: c.z } };
 }
+// La pièce se place en bas à gauche de l'image ; le grand écran du fond s'accroche à droite, derrière elle.
+const _vc = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+function layoutScreenView(cam, look) {
+    const mobile = sizes.width < 700, aspect = sizes.width / sizes.height;
+    _vc.fov = camera.fov; _vc.aspect = aspect; _vc.updateProjectionMatrix();
+    const pos = new THREE.Vector3(cam.x, cam.y, cam.z), tgt = new THREE.Vector3(look.x, look.y, look.z);
+    const fwd = new THREE.Vector3().subVectors(tgt, pos); const dP = fwd.length(); fwd.normalize();
+    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
+    const halfH = dP * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), halfW = halfH * aspect;
+    // décale la cible : la pièce passe à gauche / en bas (sur mobile : en bas seulement)
+    const newLook = tgt.clone().addScaledVector(right, mobile ? 0 : 0.36 * halfW).addScaledVector(up, mobile ? 0.5 * halfH : 0.14 * halfH);
+    // rayon vers le point de l'écran où l'on veut le centre du grand écran
+    _vc.position.copy(pos); _vc.lookAt(newLook); _vc.updateMatrixWorld();
+    const ndc = mobile ? new THREE.Vector2(0, 0.45) : new THREE.Vector2(0.36, 0.0);
+    const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, _vc);
+    const dir = ray.ray.direction;
+    const wallZ = -15.95;
+    let hit = null;
+    if (dir.z < -0.05) { const t = (wallZ - pos.z) / dir.z; hit = pos.clone().addScaledVector(dir, t); }
+    if (!hit) hit = new THREE.Vector3(0, -1.5, wallZ);
+    const D = Math.abs(wallZ - pos.z);
+    const viewW = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * aspect;
+    const scale = THREE.MathUtils.clamp((mobile ? 0.92 : 0.46) * viewW / 11, 0.5, 1.5);
+    return { look: newLook, x: THREE.MathUtils.clamp(hit.x, -9, 9), y: Math.max(hit.y, -3.95 + 2.75 * scale + 0.15), scale };
+}
 function showOnScreen(key, index) {
     if (!screenData[key]) return;
     screenKey = key;
@@ -411,6 +437,7 @@ function closeScreen(moveCam = true) {
     if (!screenKey) return;
     screenKey = null;
     garage.setScreen(null);
+    garage.setScreenPose(null);
     screenHud.classList.remove('visible');
     setTimeout(() => { if (!screenKey) screenHud.classList.add('hidden'); }, 500);
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -515,24 +542,26 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
 
         if (panel.id === 'panel-0') {
             // App Conception (Capot Moteur)
-            targetCamPos = { x: 4.0, y: -1.0, z: 0.5 };
+            targetCamPos = { x: 4.0, y: -2.2, z: 0.5 };
             targetLookPos = { x: 1.5, y: -2.9, z: -1.5 };
         } else if (panel.id === 'panel-1') {
             // Canada (Aileron Avant)
-            targetCamPos = { x: 2.0, y: -1.5, z: 6.5 };
+            targetCamPos = { x: 2.0, y: -2.3, z: 6.5 };
             targetLookPos = { x: 0.5, y: -3.0, z: 3.2 };
         } else if (panel.id === 'panel-2') {
             // Order Tracker (Roue Avant Droite)
-            targetCamPos = { x: 4.5, y: -1.5, z: 1.6 };
-            targetLookPos = { x: 2.0, y: -2.8, z: 1.6 };
+            targetCamPos = { x: 4.4, y: -2.3, z: 4.6 };
+            targetLookPos = { x: 1.5, y: -2.9, z: 1.6 };
         } else if (panel.id === 'panel-3') {
             // Class Leader (Aileron Arrière)
-            targetCamPos = { x: 2, y: -1.2, z: 4.0 };
-            targetLookPos = { x: 1.5, y: -1.8, z: -1.5 };
+            targetCamPos = { x: 3.6, y: -2.1, z: -0.2 };
+            targetLookPos = { x: 0.5, y: -2.5, z: -3.7 };
         }
 
-        // la caméra se tourne vers le grand écran (la voiture reste en bas de l'image)
-        moveCamera(screenCam().cam, screenCam().look);
+        // la caméra zoome sur la pièce ; le grand écran du fond se place derrière elle
+        const lay = layoutScreenView(targetCamPos, targetLookPos);
+        moveCamera(targetCamPos, { x: lay.look.x, y: lay.look.y, z: lay.look.z });
+        garage.setScreenPose(lay.x, lay.y, lay.scale);
     });
 });
 
