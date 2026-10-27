@@ -329,12 +329,17 @@ const hubLabels = Array.from(document.querySelectorAll('.hub-label'));
 const hubBack = document.getElementById('hub-back');
 function carPose(toHub, instant = false) {
     const s = toHub ? HUB_CAR.s : 1;
-    const to = { x: toHub ? HUB_CAR.x : 0, z: toHub ? HUB_CAR.z : 0, y: -3 + (-0.95) * (1 - s) };
+    const to = { x: HUB_CAR.x, z: HUB_CAR.z, y: -3 + (-0.95) * (1 - s) };
     gsap.killTweensOf(carGroup.position); gsap.killTweensOf(carGroup.scale);
     if (instant) { carGroup.position.set(to.x, to.y, to.z); carGroup.scale.setScalar(s); return; }
     gsap.to(carGroup.position, { ...to, duration: 1.3, ease: 'power2.inOut' });
     gsap.to(carGroup.scale, { x: s, y: s, z: s, duration: 1.3, ease: 'power2.inOut' });
 }
+// La voiture reste à sa place dans le garage : c'est la caméra qui vient à elle.
+// Toutes les positions de caméra "voiture" sont écrites pour une voiture au centre : on les décale ici.
+const CAR_OFF = { x: HUB_CAR.x, z: HUB_CAR.z };
+const offP = (p) => ({ x: p.x + CAR_OFF.x, y: p.y, z: p.z + CAR_OFF.z });
+function moveCar(camPos, lookPos) { moveCamera(offP(camPos), offP(lookPos)); }
 function showHubObjects(v, delay = 0) {
     if (v) { hub.setVisible(true); return; }
     gsap.delayedCall(delay, () => { if (!hubMode) hub.setVisible(false); });
@@ -342,7 +347,7 @@ function showHubObjects(v, delay = 0) {
 function goHub(instant = false) {
     hubMode = true;
     document.body.classList.add('hub');
-    isAutoRotating = false; isCockpitView = false; uiVisible = false;
+    isAutoRotating = true; isCockpitView = false; uiVisible = false;
     cockpitScreens.hide(); resetScreenFocus();
     if (screenKey) closeScreen(false);
     if (meMode) { meMode = false; mePanel.classList.remove('visible'); setTimeout(() => { if (!meMode) mePanel.classList.add('hidden'); }, 600); }
@@ -354,7 +359,6 @@ function goHub(instant = false) {
     resetCarMaterials();
     carGroup.visible = true; garage.setVisible(true); showHubObjects(true);
     carPose(true, instant);
-    hubYaw = HUB_CAR.yaw;
     if (instant) {
         camera.position.set(HUB_CAM.x, HUB_CAM.y, HUB_CAM.z); cameraLookAtTarget.set(HUB_LOOK.x, HUB_LOOK.y, HUB_LOOK.z);
     } else {
@@ -369,14 +373,14 @@ function centerCar() {
     document.body.classList.remove('hub');
     garage.setScreenPose(null);
     carPose(false);
-    showHubObjects(false, 0.9);
+    showHubObjects(false, 0.4);
 }
 function enterCar() {
     centerCar();
     isAutoRotating = true; isCockpitView = false; uiVisible = true;
     gsap.to('.panel', { opacity: 1, duration: 0.6, delay: 0.9 });
     document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'auto');
-    moveCamera({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
+    moveCar({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
 }
 function hubPick(e) {
     pointerRay(e);
@@ -489,7 +493,7 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
             setTimeout(() => { if (isCockpitView) cockpitScreens.show(); }, 1200);
         }
 
-        moveCamera(camPos, lookPos);
+        moveCar(camPos, lookPos);
     });
 });
 
@@ -560,7 +564,7 @@ function closeScreen(moveCam = true) {
         isAutoRotating = true; uiVisible = true;
         gsap.to('.panel', { opacity: 1, duration: 0.6, delay: 0.5 });
         document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'auto');
-        moveCamera({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
+        moveCar({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
     }
 }
 function stepScreen(dir) {
@@ -673,6 +677,7 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
         }
 
         // la caméra zoome sur la pièce ; le grand écran du fond se place derrière elle
+        targetCamPos = offP(targetCamPos); targetLookPos = offP(targetLookPos);
         const lay = layoutScreenView(targetCamPos, targetLookPos, panel.id === 'panel-0' ? 0.12 : 0.36);
         moveCamera(targetCamPos, { x: lay.look.x, y: lay.look.y, z: lay.look.z });
         garage.setScreenPose(lay.x, lay.y, lay.scale);
@@ -686,7 +691,7 @@ document.getElementById('close-modal').addEventListener('click', () => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     isAutoRotating = true;
     resetCarMaterials();
-    moveCamera({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
+    moveCar({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
 });
 
 // --- ÉCRANS DU COCKPIT : clic = on plonge dans l'écran, la page s'affiche en plein écran ---
@@ -714,7 +719,7 @@ function focusScreen(screen) {
 function unfocusScreen() {
     if (!focusedScreen) return;
     resetScreenFocus();
-    moveCamera(COCKPIT_CAM, COCKPIT_LOOK);
+    moveCar(COCKPIT_CAM, COCKPIT_LOOK);
 }
 // les flèches passent d'un écran à l'autre
 function changePage() {
@@ -819,11 +824,6 @@ goHub(true);
 const tick = () => {
     const delta = Math.min(clock.getDelta(), 0.1); // 0.1 max : évite un saut après un changement d'onglet
     if (isAutoRotating) carGroup.rotation.y -= AUTO_ROTATE_SPEED * delta;
-    else if (hubMode) {   // dans le hub : la voiture se balance doucement autour de son angle
-        let d = (hubYaw + Math.sin(clock.elapsedTime * 0.35) * 0.2 - carGroup.rotation.y) % (Math.PI * 2);
-        if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2;
-        carGroup.rotation.y += d * Math.min(1, delta * 2.5);
-    }
     hub.update(delta, camera);
     {   // étiquettes au-dessus des trois objets
         const showL = hubMode && !meMode && !globe.isActive() && loaderEl().classList.contains('hidden');
