@@ -84,6 +84,8 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     // Au repos : l'enseigne. Quand on clique sur une boîte : un écran qui affiche la fiche (setScreen).
     const SIGN_X = -10;
     let iconImg = null, currentScreen = null;
+    const shots = new Map();   // captures d'écran de l'app (url -> image ou null si absente)
+    function loadShots(list) { for (const u of list || []) if (!shots.has(u)) { shots.set(u, null); const im = new Image(); im.onload = () => { shots.set(u, im); drawSign(); }; im.src = u; } }
     const signTex = canvasTex(2048, 1024, () => {});
     signTex.encoding = THREE.LinearEncoding;
     const font = (w, px) => `${w} ${px}px "Segoe UI", Roboto, Arial, sans-serif`;
@@ -109,24 +111,35 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
             g.fillStyle = GREEN_LIGHT; g.font = font(600, 56); g.fillText('M O T O R S P O R T   L O G I S T I C S', 770, 700);
             if (iconImg) g.drawImage(iconImg, 130, 190, 560, 560);
         } else {
-            const X = 120, W = w - 240;
+            const imgs = (c.images || []).map(u => shots.get(u)).filter(Boolean);
+            const X = 120, W = imgs.length ? 1250 : w - 240;
             if (iconImg) g.drawImage(iconImg, w - 250, 70, 120, 120);
             g.fillStyle = '#7dffc4'; g.font = font(700, 46); g.fillText(c.eyebrow.split('').join(' ').replace(/ {2,}/g, '   '), X, 140);
             g.fillStyle = '#fff'; g.font = font(900, 130); g.fillText(c.title, X, 290);
-            g.fillStyle = '#cdeedd'; g.font = font(500, 54); let y = wrap(g, c.hook, X, 375, W, 66, 2);
+            g.fillStyle = '#cdeedd'; g.font = font(500, imgs.length ? 47 : 54); let y = wrap(g, c.hook, X, 375, W, 66, 2);
             // 3 chiffres clés
             y += 20; const cw = (W - 80) / 3;
             c.stats.forEach(([v, l], i) => {
                 const x = X + i * (cw + 40);
                 g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x, y, cw, 215);
                 g.fillStyle = '#43B97F'; g.fillRect(x, y, 8, 215);
-                g.fillStyle = '#fff'; g.font = font(800, v.length > 12 ? 44 : 62); g.fillText(v, x + 32, y + 78);
+                g.fillStyle = '#fff'; g.font = font(800, v.length > 10 ? 40 : 62); g.fillText(v, x + 32, y + 78);
                 g.fillStyle = '#cdeedd'; g.font = font(500, 38); wrap(g, l, x + 32, y + 132, cw - 56, 46, 2);
             });
             y += 215 + 70;
-            g.fillStyle = '#e8f5ee'; g.font = font(400, 44); y = wrap(g, c.text, X, y, W, 58, 4);
+            g.fillStyle = '#e8f5ee'; g.font = font(400, imgs.length ? 39 : 44); y = wrap(g, c.text, X, y, W, imgs.length ? 52 : 58, 4);
             g.fillStyle = GREEN_LIGHT; g.font = font(700, 40);
-            g.fillText(c.tags.join('   ·   '), X, h - 95);
+            g.fillText(c.tags.join('   ·   '), X, h - 70);
+            if (imgs.length) {   // captures de l'app, façon téléphones, à droite
+                const ph = 520, gap = 36; let px = w - 120;
+                for (const im of imgs.slice(0, 2).reverse()) {
+                    const pw = Math.min(330, ph * im.width / im.height);
+                    px -= pw; const py = 250;
+                    g.fillStyle = '#05100b'; g.beginPath(); g.roundRect(px - 12, py - 12, pw + 24, ph + 24, 34); g.fill();
+                    g.save(); g.beginPath(); g.roundRect(px, py, pw, ph, 24); g.clip(); g.drawImage(im, px, py, pw, ph); g.restore();
+                    px -= gap;
+                }
+            }
         }
         signTex.needsUpdate = true;
     }
@@ -134,7 +147,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     sign.position.set(SIGN_X, 4.6, -HALF + 0.05); group.add(sign);
     drawSign();
     new THREE.TextureLoader().load(iconUrl, (icon) => { iconImg = icon.image; drawSign(); });
-    function setScreen(content) { currentScreen = content; drawSign(); }
+    function setScreen(content) { currentScreen = content; loadShots(content && content.images); drawSign(); }
     function setScreenPose(x, y, scale = 1) {   // y en monde ; null = position de repos
         const px = x == null ? SIGN_X : x, py = y == null ? 4.6 : y - group.position.y, sc = x == null ? 1 : scale;
         if (window.gsap) { window.gsap.to(sign.position, { x: px, y: py, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' }); window.gsap.to(sign.scale, { x: sc, y: sc, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' }); }

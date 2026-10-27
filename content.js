@@ -46,7 +46,7 @@ export const panelsData = {
         ${head('02', 'FRONT WING', 'International Experience', 'From Montreal at 15 to New Zealand with a WRC team.')}
         ${stats([
             ['15', 'years old for my first work trip abroad, alone'],
-            ['19', 'countries visited'],
+            ['23', 'countries visited'],
             ['5 months', 'of daily English in New Zealand']
         ])}
         <p>Just as the front wing directs the airflow over the entire car, my experiences abroad shaped my ambitions and dreams from a very early age.</p>
@@ -98,12 +98,13 @@ export const screenData = {
         stats: [['30 pages', 'of PDF schedules replaced'], ['Real-time', 'one source of truth for the team'], ['Own company', 'CarZero, with Paddon Racing Group as a client']],
         text: 'With the support of WRC driver Hayden Paddon, I set out to replace the 30-page PDF schedules that rally teams still rely on. That became CarZero: a simple, 100% customizable solution, tested with mechanics, drivers and managers.',
         tags: ['Flutter', 'Supabase', 'Glide', 'Product design'],
+        images: ['photos/app-1.png', 'photos/app-2.png'],   // captures de l'app (portrait) à mettre dans le dossier photos
         link: { label: 'carzeroapp.com ↗', href: 'https://carzeroapp.com' }
     },
     'template-canada': {
         eyebrow: '02 · FRONT WING', title: 'International Experience',
         hook: 'From Montreal at 15 to New Zealand with a WRC team.',
-        stats: [['15', 'years old for my first work trip abroad, alone'], ['19', 'countries visited'], ['5 months', 'of daily English in New Zealand']],
+        stats: [['15', 'years old for my first work trip abroad, alone'], ['23', 'countries visited'], ['5 months', 'of daily English in New Zealand']],
         text: 'Montreal Skeet Club (2019), an Erasmus+ year and management internship in Lithuania (2023-2025), then Paddon Racing Group in Cromwell, New Zealand (April to August 2026).',
         tags: ['Canada', 'Lithuania', 'New Zealand'],
         goto: 'front'

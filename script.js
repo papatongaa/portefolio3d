@@ -393,7 +393,7 @@ function screenCam() {
 }
 // La pièce se place en bas à gauche de l'image ; le grand écran du fond s'accroche à droite, derrière elle.
 const _vc = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-function layoutScreenView(cam, look) {
+function layoutScreenView(cam, look, shiftX = 0.36) {
     const mobile = sizes.width < 700, aspect = sizes.width / sizes.height;
     _vc.fov = camera.fov; _vc.aspect = aspect; _vc.updateProjectionMatrix();
     const pos = new THREE.Vector3(cam.x, cam.y, cam.z), tgt = new THREE.Vector3(look.x, look.y, look.z);
@@ -402,10 +402,10 @@ function layoutScreenView(cam, look) {
     const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
     const halfH = dP * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), halfW = halfH * aspect;
     // décale la cible : la pièce passe à gauche / en bas (sur mobile : en bas seulement)
-    const newLook = tgt.clone().addScaledVector(right, mobile ? 0 : 0.36 * halfW).addScaledVector(up, mobile ? 0.5 * halfH : 0.14 * halfH);
+    const newLook = tgt.clone().addScaledVector(right, mobile ? 0 : shiftX * halfW).addScaledVector(up, mobile ? 0.5 * halfH : 0.14 * halfH);
     // rayon vers le point de l'écran où l'on veut le centre du grand écran
     _vc.position.copy(pos); _vc.lookAt(newLook); _vc.updateMatrixWorld();
-    const ndc = mobile ? new THREE.Vector2(0, 0.45) : new THREE.Vector2(0.36, 0.0);
+    const ndc = mobile ? new THREE.Vector2(0, 0.45) : new THREE.Vector2(0.36, -0.1);
     const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, _vc);
     const dir = ray.ray.direction;
     const wallZ = -15.95;
@@ -559,7 +559,7 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
         }
 
         // la caméra zoome sur la pièce ; le grand écran du fond se place derrière elle
-        const lay = layoutScreenView(targetCamPos, targetLookPos);
+        const lay = layoutScreenView(targetCamPos, targetLookPos, panel.id === 'panel-0' ? 0.12 : 0.36);
         moveCamera(targetCamPos, { x: lay.look.x, y: lay.look.y, z: lay.look.z });
         garage.setScreenPose(lay.x, lay.y, lay.scale);
     });
@@ -676,20 +676,37 @@ function avatarCamera() {
     const look = base.clone().addScaledVector(right, mobile ? 0 : 1.05); look.y = base.y + (mobile ? 1.75 : 1.95);
     return { cam, look };
 }
+// Sans avatar 3D : la voiture glisse à gauche (en continuant de tourner), le panneau s'ouvre à droite.
+const CAR_ME = { x: -2.5, z: 2.2, s: 0.78 };
+function slideCar(toMe) {
+    const s = toMe ? CAR_ME.s : 1;
+    gsap.to(carGroup.position, { x: toMe ? CAR_ME.x : 0, z: toMe ? CAR_ME.z : 0, y: -3 + (-0.95) * (1 - s), duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' });
+    gsap.to(carGroup.scale, { x: s, y: s, z: s, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' });
+    // les deux boîtes de droite s'effacent derrière le panneau
+    document.querySelectorAll('.panel').forEach((p, i) => {
+        if (i < 2) return;
+        gsap.to(p, { opacity: toMe ? 0 : 1, duration: 0.5, overwrite: 'auto' });
+        p.style.pointerEvents = toMe ? 'none' : 'auto';
+    });
+}
 function enterMe() {
     if (meMode) return;
     meMode = true;
-    isAutoRotating = false; isCockpitView = false;
+    isCockpitView = false;
     cockpitScreens.hide(); resetScreenFocus();
-    uiVisible = false;
-    gsap.to('.panel', { opacity: 0, duration: 0.4 });
-    document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
-    const { cam, look } = SHOW_AVATAR ? avatarCamera() : { cam: camera.position, look: cameraLookAtTarget };
-    gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
-    gsap.to(camera.position, { x: cam.x, y: cam.y, z: cam.z, duration: 1.5, ease: 'power2.inOut' });
-    gsap.to(cameraLookAtTarget, { x: look.x, y: look.y, z: look.z, duration: 1.5, ease: 'power2.inOut' });
-    if (SHOW_AVATAR) gsap.delayedCall(1.0, () => { if (meMode) carGroup.visible = false; });
-    gsap.delayedCall(1.1, () => { if (meMode) { mePanel.classList.remove('hidden'); requestAnimationFrame(() => mePanel.classList.add('visible')); } });
+    if (SHOW_AVATAR) {
+        isAutoRotating = false; uiVisible = false;
+        gsap.to('.panel', { opacity: 0, duration: 0.4 });
+        document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
+        const { cam, look } = avatarCamera();
+        gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
+        gsap.to(camera.position, { x: cam.x, y: cam.y, z: cam.z, duration: 1.5, ease: 'power2.inOut' });
+        gsap.to(cameraLookAtTarget, { x: look.x, y: look.y, z: look.z, duration: 1.5, ease: 'power2.inOut' });
+        gsap.delayedCall(1.0, () => { if (meMode) carGroup.visible = false; });
+    } else {
+        slideCar(true);
+    }
+    gsap.delayedCall(1.0, () => { if (meMode) { mePanel.classList.remove('hidden'); requestAnimationFrame(() => mePanel.classList.add('visible')); } });
 }
 function exitMe(moveCam = true) {
     if (!meMode) return;
@@ -697,6 +714,7 @@ function exitMe(moveCam = true) {
     carGroup.visible = true;
     mePanel.classList.remove('visible');
     setTimeout(() => { if (!meMode) mePanel.classList.add('hidden'); }, 600);
+    if (!SHOW_AVATAR) { slideCar(false); return; }
     if (moveCam) {
         isAutoRotating = true; uiVisible = true;
         gsap.to('.panel', { opacity: 1, duration: 0.6, delay: 0.5 });
@@ -764,7 +782,7 @@ const tick = () => {
         pt.anchor.getWorldPosition(screenPosition);
         screenPosition.project(camera);
 
-        if (screenPosition.z > 1 || !uiVisible) {
+        if (screenPosition.z > 1 || !uiVisible || (meMode && !SHOW_AVATAR && pt.side === 'right')) {
             pt.targetEl.classList.add('hidden');
             pt.lineEl.style.opacity = 0;
         } else {

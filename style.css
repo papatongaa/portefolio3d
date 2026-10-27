@@ -388,3 +388,6 @@ body.garage3d:not(.globe-mode) .garage-bg { opacity: 0; }
 #screen-hud .hidden { display: none; }
 @media (max-width:700px){ #screen-hud { gap: 6px; bottom: 4vh; } #screen-hud button, #screen-hud .sh-btn { padding: 9px 12px; font-size: .75rem; } }
 #screen-hud button, #screen-hud .sh-btn { white-space: nowrap; }
+@media (max-height:700px){ #me-panel .me-photo{ height:150px; margin-bottom:14px; } #me-panel{ padding:26px 32px 22px; } #me-panel .m-stats{ margin-top:16px; gap:10px; } }
+#me-panel { max-height: 86vh; overflow-y: auto; }
+@media (max-height:700px){ #me-panel .me-photo{ height:120px; } }
