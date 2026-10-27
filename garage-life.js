@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Le "dehors" du garage (piste, ciel, voitures de course qui passent) et les mécanos qui y circulent.
 // Tout est fabriqué avec des formes simples : aucun fichier à télécharger.
@@ -199,6 +200,20 @@ export function createMechanics({ HALF, carAt, tyreStacks, cabinetZ }) {
         return body;
     }
 
+    // version soignée, fabriquée dans Blender (assets/mechanic.glb) ; les cubes ci-dessus servent de secours
+    function makeMechanicGlb(tpl) {
+        const body = new THREE.Group(); const m = new THREE.Group(); body.add(m);
+        const model = tpl.clone(true); m.add(model);
+        const get = (n) => model.getObjectByName(n);
+        const tyre = new THREE.Group();
+        tyre.add(new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.2, 10, 20), tyreMat), new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.025, 6, 20), rimMat));
+        tyre.position.set(0, 0.95, 0.5); tyre.visible = false; m.add(tyre);
+        const tool = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.28, 0.32), boxMat); tool.position.set(0, 0.9, 0.42); tool.visible = false; m.add(tool);
+        body.scale.setScalar(1.3);
+        body.userData = { m, legL: get('legL'), legR: get('legR'), armL: get('armL'), armR: get('armR'), tyre, tool };
+        return body;
+    }
+
     // ----- le circuit de promenade : un rectangle qui fait le tour du garage, sans toucher la voiture -----
     const X0 = -12.4, X1 = 12.4, Z0 = -12.2, Z1 = 6.6, W = X1 - X0, D = Z1 - Z0, L = 2 * (W + D);
     const corners = [0, W, W + D, 2 * W + D];
@@ -270,6 +285,14 @@ export function createMechanics({ HALF, carAt, tyreStacks, cabinetZ }) {
         const mech = { body, steps: [], i: 0, sub: 0, timer: 0, phase: 0, yaw: 0, carry: null, speed: rnd(2.5, 3.1), pose: 0 };
         planTask(mech); mechs.push(mech);
     }
+    // dès que le modèle Blender est chargé, chaque mécano change de corps sans perdre sa place ni sa tâche
+    new GLTFLoader().load('assets/mechanic.glb', (gltf) => {
+        for (const mech of mechs) {
+            const old = mech.body, nb = makeMechanicGlb(gltf.scene);
+            nb.position.copy(old.position); nb.rotation.copy(old.rotation);
+            root.remove(old); root.add(nb); mech.body = nb;
+        }
+    }, undefined, () => { /* pas de fichier : on garde les cubes */ });
     const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 
     function update(dt) {
