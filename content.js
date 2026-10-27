@@ -26,6 +26,7 @@ export const meCard = `
     <div class="me-sec">Tools</div>
     <div class="m-tags"><span>Flutter</span><span>Supabase</span><span>Google Apps Script</span><span>Glide</span><span>Excel</span><span>Trello</span><span>Xero</span></div>
     <a class="m-link" href="mailto:tanguypavat8@gmail.com">Get in touch →</a>
+    <a class="m-link" href="https://www.linkedin.com/in/tanguy-pavat" target="_blank" rel="noopener">LinkedIn ↗</a>
 `;
 
 export const panelsData = {

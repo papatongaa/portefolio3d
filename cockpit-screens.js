@@ -144,10 +144,11 @@ function drawRight(c, t, intro) {
     // ondes radio animées
     for (let i = 0; i < 3; i++) { const r = 14 + ((t * 18 + i * 12) % 36); c.strokeStyle = `rgba(0,210,255,${0.5 - r / 100})`; c.lineWidth = 2; c.beginPath(); c.arc(960, 102, r, 0, 7); c.stroke(); }
     c.fillStyle = CY; c.beginPath(); c.arc(960, 102, 6, 0, 7); c.fill();
-    text(c, 'EMAIL', 680, 132, DIM, 15, 'bold'); text(c, 'tanguypavat8@gmail.com', 680, 160, '#fff', 22, 'bold');
-    text(c, 'PHONE', 680, 208, DIM, 15, 'bold'); text(c, '+33 6 28 37 39 78', 680, 236, '#fff', 24, 'bold');
-    text(c, 'BASED IN', 680, 284, DIM, 15, 'bold'); text(c, 'Lille & Romans-sur-Isère, France', 680, 312, '#fff', 20, 'bold');
-    text(c, 'AVAILABLE', 680, 356, DIM, 15, 'bold'); text(c, 'From February 2027 · 6 months', 680, 380, AM, 19, 'bold');
+    text(c, 'EMAIL', 680, 126, DIM, 14, 'bold'); text(c, 'tanguypavat8@gmail.com', 680, 150, '#fff', 21, 'bold');
+    text(c, 'PHONE', 680, 178, DIM, 14, 'bold'); text(c, '+33 6 28 37 39 78', 680, 203, '#fff', 22, 'bold');
+    text(c, 'LINKEDIN', 680, 231, DIM, 14, 'bold'); text(c, 'linkedin.com/in/tanguy-pavat', 680, 255, '#fff', 20, 'bold');
+    text(c, 'BASED IN', 680, 283, DIM, 14, 'bold'); text(c, 'Lille & Romans-sur-Isère, France', 680, 307, '#fff', 19, 'bold');
+    text(c, 'AVAILABLE', 680, 336, DIM, 14, 'bold'); text(c, 'From February 2027 · 6 months', 680, 360, AM, 19, 'bold');
     // outils : bande défilante
     a(0.7); panel(c, 24, 400, 976, 54, null);
     text(c, 'TOOLS', 42, 434, DIM, 16, 'bold');
