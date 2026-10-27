@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { createCockpitScreens, pageToHTML } from './cockpit-screens.js';
+import { createCockpitScreens } from './cockpit-screens.js';
 import { panelsData, meCard, screenData } from './content.js';
 import { createGlobe, placeCardHTML } from './globe.js';
 import { createGarage } from './garage.js';
@@ -694,28 +694,10 @@ const COCKPIT_CAM = { x: 0, y: -2.6, z: 0.5 };
 const COCKPIT_LOOK = { x: 0, y: -2.6, z: -10 };
 const screenNav = document.getElementById('screen-nav');
 const screenNavLabel = document.getElementById('sn-label');
-const screenPage = document.getElementById('screen-page');
-const spTitle = document.getElementById('sp-title');
-const spDots = document.getElementById('sp-dots');
-const spBody = document.getElementById('sp-body');
 let focusedScreen = null;
-let pageTimer = null;
-
-// Affiche (ou met à jour) la page web plein écran de l'écran visé
-function renderScreenPage() {
-    if (!focusedScreen) return;
-    spTitle.textContent = focusedScreen.title.replace(' // ', ' · ');
-    spDots.innerHTML = Array.from({ length: focusedScreen.pageCount }, (_, i) =>
-        `<i class="${i === focusedScreen.page ? 'on' : ''}"></i>`).join('');
-    spBody.innerHTML = pageToHTML(focusedScreen.pageBlocks);
-    spBody.classList.remove('swap'); void spBody.offsetWidth; spBody.classList.add('swap');
-    screenNavLabel.textContent = `${focusedScreen.pageName}  (${focusedScreen.page + 1}/${focusedScreen.pageCount})`;
-}
-// Sort du mode plein écran sans bouger la caméra (utilisé par le menu et les fiches)
+// Sort du mode "dans l'écran" sans bouger la caméra (utilisé par le menu et les fiches)
 function resetScreenFocus() {
     focusedScreen = null;
-    if (pageTimer) { pageTimer.kill(); pageTimer = null; }
-    screenPage.classList.remove('visible');
     screenNav.classList.add('hidden');
     cockpitScreens.setFocused(null);
 }
@@ -723,27 +705,22 @@ function focusScreen(screen) {
     focusedScreen = screen;
     cockpitScreens.setFocused(screen);
     const pose = cockpitScreens.focusPose(screen, camera);
-    // la caméra "entre" dans l'écran…
     gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
-    gsap.to(camera.position, { x: pose.position.x, y: pose.position.y, z: pose.position.z, duration: 1.3, ease: "power2.in" });
-    gsap.to(cameraLookAtTarget, { x: pose.target.x, y: pose.target.y, z: pose.target.z, duration: 1.3, ease: "power2.in" });
-    // …puis la page web prend le relais (texte net)
-    if (pageTimer) pageTimer.kill();
-    pageTimer = gsap.delayedCall(1.05, () => {
-        renderScreenPage();
-        screenPage.classList.add('visible');
-        screenNav.classList.remove('hidden');
-    });
+    gsap.to(camera.position, { x: pose.position.x, y: pose.position.y, z: pose.position.z, duration: 1.2, ease: "power2.inOut" });
+    gsap.to(cameraLookAtTarget, { x: pose.target.x, y: pose.target.y, z: pose.target.z, duration: 1.2, ease: "power2.inOut" });
+    screenNavLabel.textContent = screen.title.replace(' // ', ' · ');
+    screenNav.classList.remove('hidden');
 }
 function unfocusScreen() {
     if (!focusedScreen) return;
     resetScreenFocus();
     moveCamera(COCKPIT_CAM, COCKPIT_LOOK);
 }
-function changePage(step) {
-    if (!focusedScreen || !screenPage.classList.contains('visible')) return;
-    focusedScreen.setPage(focusedScreen.page + step);
-    renderScreenPage();
+// les flèches passent d'un écran à l'autre
+function changePage() {
+    if (!focusedScreen) return;
+    const list = cockpitScreens.screens, i = list.indexOf(focusedScreen);
+    focusScreen(list[(i + 1) % list.length]);
 }
 
 const raycaster = new THREE.Raycaster();
@@ -763,13 +740,12 @@ window.addEventListener('pointermove', (e) => {
     pointerRay(e);
     canvas.style.cursor = cockpitScreens.pick(raycaster) ? 'pointer' : '';
 });
-document.getElementById('sn-prev').addEventListener('click', () => changePage(-1));
-document.getElementById('sn-next').addEventListener('click', () => changePage(1));
+document.getElementById('sn-prev').addEventListener('click', () => changePage());
+document.getElementById('sn-next').addEventListener('click', () => changePage());
 document.getElementById('sn-close').addEventListener('click', unfocusScreen);
 window.addEventListener('keydown', (e) => {
     if (!focusedScreen) return;
-    if (e.key === 'ArrowRight') changePage(1);
-    else if (e.key === 'ArrowLeft') changePage(-1);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') changePage();
     else if (e.key === 'Escape') unfocusScreen();
 });
 

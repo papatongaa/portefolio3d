@@ -1,171 +1,167 @@
 import * as THREE from 'three';
 
-// Deux écrans 3D pour la vue cockpit (About Me).
-// - Dans le cockpit : chaque écran est un objet 3D (coque incurvée + dalle) dont l'image est dessinée sur un <canvas>.
-// - Au clic : la caméra plonge dans l'écran, puis la page s'affiche en vrai texte web (net à toutes les tailles).
-// Le contenu des pages est défini UNE seule fois ci-dessous et sert aux deux affichages.
+// Deux écrans 3D dans le cockpit : des tableaux de bord animés (télémétrie), dessinés sur un <canvas>.
+// Clic = la caméra plonge dans l'écran ; les flèches passent de l'un à l'autre.
 
 const W = 1024, H = 470;          // taille "logique" du dessin
-const RES = 3;                    // résolution du canvas (3 = trois fois plus de pixels que W x H)
-const ACCENT = '#00d2ff';
-const X0 = 70;                    // marge intérieure
+const RES = 2;                    // résolution du canvas (2 = deux fois plus de pixels que W x H)
+const CY = '#00d2ff', GR = '#2fcf8a', AM = '#ffb020', DIM = '#6f8794', TXT = '#d6e3ea', BG = '#03070b';
 const FONT = '"Segoe UI", Roboto, Arial, sans-serif';
 
-// ---------- CONTENU (à compléter / valider ensemble) ----------
-// Types de blocs : label, big, sub, rule, text, hi (texte blanc), dim, small, bars, chips
-const LEFT = {
-    title: 'DRIVER // DATA',
-    pages: [
-        { name: 'Profile', blocks: [
-            { t: 'big', s: 'Tanguy PAVAT' },
-            { t: 'sub', s: 'Motorsport Management' },
-            { t: 'rule' },
-            { t: 'text', s: 'Master — International Sport Administration' },
-            { t: 'dim', s: 'University of Lille (M2)' },
-            { t: 'dim', s: 'Born in Austria · 23 countries visited' }
-        ] },
-        { name: 'Objective', blocks: [
-            { t: 'label', s: 'LONG-TERM TARGET' },
-            { t: 'big', s: 'Team Principal' },
-            { t: 'rule' },
-            { t: 'label', s: 'NEXT STEP' },
-            { t: 'hi', s: 'End-of-studies internship in motorsport' },
-            { t: 'dim', s: 'Available from February 2027 · 6 months' }
-        ] },
-        { name: 'Education', blocks: [
-            { t: 'label', s: '2025 – NOW' },
-            { t: 'hi', s: 'Master — International Sport Administration' },
-            { t: 'small', s: 'University of Lille' },
-            { t: 'rule' },
-            { t: 'label', s: '2023 – 2025' },
-            { t: 'hi', s: 'Double Bachelor — Economics & Management' },
-            { t: 'small', s: 'and Applied Foreign Languages · Univ. Grenoble Alpes' },
-            { t: 'small', s: 'Erasmus+ year at Vilnius University, Lithuania' }
-        ] },
-        { name: 'Involvement', blocks: [
-            { t: 'label', s: 'STUDENT LIFE' },
-            { t: 'hi', s: 'Class leader — Master International Sport Admin.' },
-            { t: 'small', s: 'Student rep, Sports Council (SUAPS) · University of Lille' },
-            { t: 'rule' },
-            { t: 'label', s: 'MOTORSPORT VOLUNTEERING' },
-            { t: 'hi', s: 'Circuit Paul Ricard · 2022 – 2023' },
-            { t: 'small', s: 'Supporting the technical scrutineers' },
-            { t: 'small', s: 'NoLimit4Life motorsport event · 2026' }
-        ] },
-        { name: 'Contact', blocks: [
-            { t: 'label', s: 'EMAIL' },
-            { t: 'big', s: 'tanguypavat8@gmail.com' },
-            { t: 'rule' },
-            { t: 'label', s: 'PHONE' },
-            { t: 'hi', s: '+33 6 28 37 39 78' },
-            { t: 'label', s: 'BASED IN' },
-            { t: 'hi', s: 'Lille & Romans-sur-Isère, France' },
-            { t: 'dim', s: 'Available from February 2027 · 6 months' }
-        ] }
-    ]
+// ---------- petits outils de dessin ----------
+const font = (c, px, w = '') => { c.font = `${w} ${px}px ${FONT}`.trim(); };
+const text = (c, s, x, y, color, px, w = '', align = 'left') => { c.fillStyle = color; font(c, px, w); c.textAlign = align; c.fillText(s, x, y); c.textAlign = 'left'; };
+const panel = (c, x, y, w, h, title) => {
+    c.fillStyle = 'rgba(0,210,255,0.045)'; c.fillRect(x, y, w, h);
+    c.strokeStyle = 'rgba(0,210,255,0.28)'; c.lineWidth = 1.5; c.strokeRect(x, y, w, h);
+    c.fillStyle = CY; c.fillRect(x, y, 22, 3);
+    if (title) text(c, title, x + 14, y + 26, DIM, 16, 'bold');
 };
+const ease = (t) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+// bruit doux pour les courbes de télémétrie
+const wave = (x, seed) => Math.sin(x * 1.3 + seed) * 0.5 + Math.sin(x * 2.9 + seed * 2.1) * 0.3 + Math.sin(x * 0.7 + seed * 0.6) * 0.4;
 
-const RIGHT = {
-    title: 'CAREER // TELEMETRY',
-    pages: [
-        { name: 'Skills', blocks: [
-            // Niveaux décoratifs (à ajuster ensemble)
-            { t: 'bars', items: [
-                ['Logistics & planning', 0.9],
-                ['Process automation', 0.85],
-                ['App development', 0.75],
-                ['Team coordination', 0.8],
-                ['Data & reporting', 0.7]
-            ] }
-        ] },
-        { name: 'Languages', blocks: [
-            { t: 'bars', step: 76, items: [
-                ['French', 1, 'native'],
-                ['English', 0.85, 'fluent'],
-                ['German', 0.55, 'conversational'],
-                ['Lithuanian', 0.25, 'basic']
-            ] }
-        ] },
-        { name: 'Tools', blocks: [
-            { t: 'label', s: 'BUILT WITH' },
-            { t: 'chips', items: ['Flutter', 'Supabase', 'Google Apps Script', 'Glide'] },
-            { t: 'label', s: 'DAILY TOOLS' },
-            { t: 'chips', items: ['Excel', 'Word', 'PowerPoint', 'Trello', 'Xero'] }
-        ] }
-    ]
-};
-
-// ---------- Dessin canvas (écran 3D dans le cockpit) ----------
-function drawBlocks(c, blocks, t) {
-    let y = 112;
-    const txt = (s, size, color, bold = false) => {
-        c.fillStyle = color; c.font = `${bold ? 'bold ' : ''}${size}px ${FONT}`; c.fillText(s, X0, y);
-    };
-    for (const b of blocks) {
-        switch (b.t) {
-            case 'label': y += 22; txt(b.s, 24, '#789'); y += 18; break;
-            case 'big':   y += 44; txt(b.s, 58, ACCENT, true); y += 18; break;
-            case 'sub':   y += 28; txt(b.s, 34, '#ffffff'); y += 22; break;
-            case 'rule':  y += 6; c.fillStyle = 'rgba(0,210,255,0.35)'; c.fillRect(X0, y, W - 2 * X0, 2); y += 24; break;
-            case 'text':  y += 30; txt(b.s, 30, '#cfd8dc'); y += 14; break;
-            case 'hi':    y += 30; txt(b.s, 30, '#ffffff'); y += 14; break;
-            case 'dim':   y += 28; txt(b.s, 28, '#99a7ad'); y += 12; break;
-            case 'small': y += 24; txt(b.s, 24, '#99a7ad'); y += 10; break;
-            case 'bars': {
-                const step = b.step || 62;
-                b.items.forEach(([label, v, right]) => {
-                    y += 26; txt(label, 28, '#cfd8dc');
-                    if (right) { c.fillStyle = '#789'; c.textAlign = 'right'; c.fillText(right, W - X0, y); c.textAlign = 'left'; }
-                    c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(X0, y + 12, W - 2 * X0, 14);
-                    c.fillStyle = ACCENT; c.fillRect(X0, y + 12, (W - 2 * X0) * v * Math.min(1, t * 1.5), 14);
-                    y += step - 26;
-                });
-                break;
-            }
-            case 'chips': {
-                y += 34; let x = X0;
-                c.font = `26px ${FONT}`;
-                b.items.forEach((s) => {
-                    const w = c.measureText(s).width + 36;
-                    if (x + w > W - X0) { x = X0; y += 58; }
-                    c.fillStyle = 'rgba(0,210,255,0.12)'; c.fillRect(x, y - 30, w, 44);
-                    c.strokeStyle = 'rgba(0,210,255,0.5)'; c.lineWidth = 2; c.strokeRect(x, y - 30, w, 44);
-                    c.fillStyle = ACCENT; c.fillText(s, x + 18, y);
-                    x += w + 14;
-                });
-                y += 36;
-                break;
-            }
-        }
-    }
+function header(c, title, t, intro) {
+    c.fillStyle = 'rgba(0,210,255,0.10)'; c.fillRect(0, 0, W, 54);
+    c.fillStyle = CY; c.fillRect(0, 52, W * ease(intro * 1.6), 3);
+    text(c, title, 28, 36, '#bfd3dc', 24, 'bold');
+    // voyant "live" + chrono
+    c.fillStyle = Math.floor(t * 1.6) % 2 ? GR : 'rgba(47,207,138,0.25)'; c.beginPath(); c.arc(W - 250, 28, 7, 0, 7); c.fill();
+    text(c, 'LIVE', W - 236, 35, GR, 18, 'bold');
+    const ms = Math.floor(t * 1000), mm = String(Math.floor(ms / 60000) % 60).padStart(2, '0'), ss = String(Math.floor(ms / 1000) % 60).padStart(2, '0'), cs = String(Math.floor(ms / 10) % 100).padStart(2, '0');
+    text(c, `${mm}:${ss}.${cs}`, W - 28, 35, TXT, 22, 'bold', 'right');
 }
 
-// ---------- Version web (page plein écran) : même contenu, texte net ----------
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-export function pageToHTML(blocks) {
-    return blocks.map((b) => {
-        switch (b.t) {
-            case 'label': return `<div class="b-label">${esc(b.s)}</div>`;
-            case 'big':   return `<h2 class="b-big">${esc(b.s)}</h2>`;
-            case 'sub':   return `<div class="b-sub">${esc(b.s)}</div>`;
-            case 'rule':  return `<hr class="b-rule">`;
-            case 'text':  return `<p class="b-text">${esc(b.s)}</p>`;
-            case 'hi':    return `<p class="b-hi">${esc(b.s)}</p>`;
-            case 'dim':   return `<p class="b-dim">${esc(b.s)}</p>`;
-            case 'small': return `<p class="b-small">${esc(b.s)}</p>`;
-            case 'bars':  return `<div class="b-bars">${b.items.map(([l, v, r], i) =>
-                `<div class="b-bar"><div class="b-bar-top"><span>${esc(l)}</span><span class="b-bar-right">${r ? esc(r) : ''}</span></div>` +
-                `<div class="b-track"><div class="b-fill" style="--v:${v};--i:${i}"></div></div></div>`).join('')}</div>`;
-            case 'chips': return `<div class="b-chips">${b.items.map((s) => `<span>${esc(s)}</span>`).join('')}</div>`;
-            default: return '';
+// jauge circulaire
+function ring(c, cx, cy, r, v, color, label, big, sub, t) {
+    c.lineWidth = 14; c.strokeStyle = 'rgba(255,255,255,0.08)'; c.beginPath(); c.arc(cx, cy, r, 0.75 * Math.PI, 2.25 * Math.PI); c.stroke();
+    c.strokeStyle = color; c.lineCap = 'round'; c.beginPath(); c.arc(cx, cy, r, 0.75 * Math.PI, (0.75 + 1.5 * v) * Math.PI); c.stroke(); c.lineCap = 'butt';
+    // graduations
+    c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,0.25)';
+    for (let i = 0; i <= 20; i++) { const a = (0.75 + 1.5 * i / 20) * Math.PI, r1 = r + 14, r2 = r + (i % 5 === 0 ? 24 : 19); c.beginPath(); c.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); c.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); c.stroke(); }
+    text(c, big, cx, cy + 14, '#fff', 54, 'bold', 'center');
+    text(c, label, cx, cy + 42, color, 17, 'bold', 'center');
+    if (sub) text(c, sub, cx, cy + r + 40, DIM, 16, '', 'center');
+}
+
+// barre segmentée (comme l'usure des pneus)
+function segBar(c, x, y, w, v, color, t, delay) {
+    const n = 14, gap = 4, sw = (w - gap * (n - 1)) / n, k = ease(t * 1.4 - delay);
+    for (let i = 0; i < n; i++) {
+        const on = i < Math.round(n * v * k);
+        c.fillStyle = on ? color : 'rgba(255,255,255,0.08)';
+        c.globalAlpha = on ? 0.65 + 0.35 * Math.sin(t * 3 + i * 0.5) * 0.5 + 0.2 : 1;
+        c.fillRect(x + i * (sw + gap), y, sw, 14);
+    }
+    c.globalAlpha = 1;
+}
+
+// circuit : un tracé fermé avec une voiture (point lumineux) qui tourne
+const TRACK = (() => {
+    const pts = [], N = 160;
+    for (let i = 0; i < N; i++) {
+        const a = i / N * Math.PI * 2;
+        const r = 1 + 0.28 * Math.sin(2 * a + 0.6) + 0.16 * Math.sin(3 * a + 1.9) - 0.1 * Math.cos(5 * a);
+        pts.push([Math.cos(a) * r * 1.25, Math.sin(a) * r * 0.85]);
+    }
+    return pts;
+})();
+function trackMap(c, cx, cy, sc, t, marks) {
+    c.lineJoin = 'round'; c.lineWidth = 12; c.strokeStyle = 'rgba(255,255,255,0.10)'; c.beginPath();
+    TRACK.forEach(([x, y], i) => i ? c.lineTo(cx + x * sc, cy + y * sc) : c.moveTo(cx + x * sc, cy + y * sc)); c.closePath(); c.stroke();
+    c.lineWidth = 3; c.strokeStyle = 'rgba(0,210,255,0.55)'; c.stroke();
+    const N = TRACK.length, head = (t * 0.18) % 1;
+    // traînée
+    for (let k = 0; k < 40; k++) {
+        const i = Math.floor(((head - k * 0.004 + 1) % 1) * N), [x, y] = TRACK[i];
+        c.fillStyle = `rgba(47,207,138,${0.5 * (1 - k / 40)})`; c.beginPath(); c.arc(cx + x * sc, cy + y * sc, 6 - k * 0.12, 0, 7); c.fill();
+    }
+    const [hx, hy] = TRACK[Math.floor(head * N) % N];
+    c.fillStyle = '#fff'; c.shadowColor = GR; c.shadowBlur = 16; c.beginPath(); c.arc(cx + hx * sc, cy + hy * sc, 7, 0, 7); c.fill(); c.shadowBlur = 0;
+    // étapes de parcours
+    marks.forEach(([f, label, col, dx, dy]) => {
+        const [x, y] = TRACK[Math.floor(f * N) % N];
+        const px = cx + x * sc, py = cy + y * sc;
+        c.fillStyle = BG; c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); c.arc(px, py, 8, 0, 7); c.fill(); c.stroke();
+        text(c, label, px + dx, py + dy, col, 17, 'bold', dx < 0 ? 'right' : 'left');
+    });
+}
+
+// ---------- ÉCRAN GAUCHE : le pilote ----------
+function drawLeft(c, t, intro) {
+    header(c, 'DRIVER // DATA', t, intro);
+    const a = (d) => { c.globalAlpha = ease(intro * 2 - d); };
+    // identité
+    a(0.1); text(c, 'TANGUY PAVAT', 28, 100, '#fff', 40, 'bold'); text(c, 'MOTORSPORT MANAGEMENT  ·  MASTER 2, UNIVERSITY OF LILLE', 28, 126, CY, 17, 'bold');
+    // jauge pays
+    a(0.2); panel(c, 24, 146, 250, 232, 'COUNTRIES');
+    ring(c, 149, 258, 66, 0.77 * ease(intro * 1.5 - 0.3), CY, 'VISITED', '23', null, t);
+    // langues
+    a(0.35); panel(c, 290, 146, 356, 232, 'LANGUAGES');
+    [['FRENCH', 1, 'NATIVE'], ['ENGLISH', 0.85, 'FLUENT'], ['GERMAN', 0.55, 'CONVERSATIONAL'], ['LITHUANIAN', 0.25, 'BASIC']].forEach(([n, v, l], i) => {
+        const y = 188 + i * 46;
+        text(c, n, 306, y, TXT, 20, 'bold'); text(c, l, 630, y, DIM, 15, '', 'right');
+        segBar(c, 306, y + 10, 324, v, i === 0 ? GR : CY, intro, 0.4 + i * 0.1);
+    });
+    // circuit = parcours
+    a(0.5); panel(c, 662, 146, 338, 232, 'CAREER LAP');
+    trackMap(c, 832, 268, 78, t, [[0.02, '2019', GR, -14, -12], [0.25, '2023', CY, 14, 6], [0.5, '2026', CY, 12, 22], [0.78, 'NEXT', AM, -14, 6]]);
+    // bas : objectif
+    a(0.7); panel(c, 24, 392, 976, 62, null);
+    text(c, 'NEXT STEP', 42, 421, DIM, 15, 'bold'); text(c, 'END-OF-STUDIES INTERNSHIP', 42, 444, '#fff', 20, 'bold');
+    text(c, 'FROM FEBRUARY 2027  ·  6 MONTHS', 330, 444, AM, 18, 'bold');
+    text(c, 'LONG-TERM TARGET', 700, 421, DIM, 15, 'bold'); text(c, 'TEAM PRINCIPAL', 700, 444, CY, 20, 'bold');
+    c.fillStyle = 'rgba(255,255,255,0.1)'; c.fillRect(870, 432, 112, 8);
+    c.fillStyle = CY; c.fillRect(870, 432, 112 * (0.35 + 0.05 * Math.sin(t)), 8);
+    c.globalAlpha = 1;
+}
+
+// ---------- ÉCRAN DROIT : compétences + contact ----------
+const SKILLS = [['LOGISTICS & PLANNING', 0.9, 1.3], ['PROCESS AUTOMATION', 0.85, 2.7], ['APP DEVELOPMENT', 0.75, 4.1], ['TEAM COORDINATION', 0.8, 5.3], ['DATA & REPORTING', 0.7, 6.9]];
+const TOOLS = ['FLUTTER', 'SUPABASE', 'APPS SCRIPT', 'GLIDE', 'EXCEL', 'TRELLO', 'XERO'];
+function drawRight(c, t, intro) {
+    header(c, 'CAREER // TELEMETRY', t, intro);
+    const a = (d) => { c.globalAlpha = ease(intro * 2 - d); };
+    a(0.15); panel(c, 24, 72, 622, 318, 'SKILLS · LIVE TRACES');
+    SKILLS.forEach(([n, v, seed], i) => {
+        const y = 118 + i * 54, x0 = 250, w = 330, h = 40, k = ease(intro * 1.5 - 0.2 - i * 0.08);
+        text(c, n, 42, y + 24, TXT, 17, 'bold');
+        c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x0, y, w, h);
+        // courbe qui défile
+        c.beginPath();
+        for (let px = 0; px <= w; px += 4) {
+            const f = wave(px * 0.045 + t * 1.6, seed) * 0.5 + 0.5, yy = y + h - (0.18 + 0.82 * (v * 0.6 + f * 0.4)) * h * k;
+            px ? c.lineTo(x0 + px, yy) : c.moveTo(x0 + px, yy);
         }
-    }).join('');
+        c.strokeStyle = i % 2 ? CY : GR; c.lineWidth = 2.2; c.stroke();
+        c.lineTo(x0 + w, y + h); c.lineTo(x0, y + h); c.closePath(); c.fillStyle = i % 2 ? 'rgba(0,210,255,0.12)' : 'rgba(47,207,138,0.12)'; c.fill();
+        // curseur de balayage
+        const sx = x0 + ((t * 80 + i * 50) % w); c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(sx, y, 2, h);
+        text(c, String(Math.round(v * 100 * k)), 612, y + 27, '#fff', 24, 'bold', 'right');
+    });
+    // contact : "radio des stands"
+    a(0.45); panel(c, 662, 72, 338, 318, 'PIT RADIO · CONTACT');
+    // ondes radio animées
+    for (let i = 0; i < 3; i++) { const r = 14 + ((t * 18 + i * 12) % 36); c.strokeStyle = `rgba(0,210,255,${0.5 - r / 100})`; c.lineWidth = 2; c.beginPath(); c.arc(960, 102, r, 0, 7); c.stroke(); }
+    c.fillStyle = CY; c.beginPath(); c.arc(960, 102, 6, 0, 7); c.fill();
+    text(c, 'EMAIL', 680, 132, DIM, 15, 'bold'); text(c, 'tanguypavat8@gmail.com', 680, 160, '#fff', 22, 'bold');
+    text(c, 'PHONE', 680, 208, DIM, 15, 'bold'); text(c, '+33 6 28 37 39 78', 680, 236, '#fff', 24, 'bold');
+    text(c, 'BASED IN', 680, 284, DIM, 15, 'bold'); text(c, 'Lille & Romans-sur-Isère, France', 680, 312, '#fff', 20, 'bold');
+    text(c, 'AVAILABLE', 680, 356, DIM, 15, 'bold'); text(c, 'From February 2027 · 6 months', 680, 380, AM, 19, 'bold');
+    // outils : bande défilante
+    a(0.7); panel(c, 24, 400, 976, 54, null);
+    text(c, 'TOOLS', 42, 434, DIM, 16, 'bold');
+    c.save(); c.beginPath(); c.rect(120, 404, 872, 46); c.clip();
+    const seg = TOOLS.join('   ·   ') + '   ·   ';
+    font(c, 22, 'bold'); const sw = c.measureText(seg).width, off = (t * 60) % sw;
+    c.fillStyle = CY; c.fillText(seg, 130 - off, 434); c.fillText(seg, 130 - off + sw, 434);
+    c.restore();
+    c.globalAlpha = 1;
 }
 
 class CockpitScreen {
     constructor(def, maxAnisotropy) {
         this.def = def;
-        this.page = 0;
         this.focused = false;
         this.canvas = document.createElement('canvas');
         this.canvas.width = W * RES; this.canvas.height = H * RES;
@@ -174,48 +170,30 @@ class CockpitScreen {
         this.texture.anisotropy = maxAnisotropy;
         if (THREE.sRGBEncoding) this.texture.encoding = THREE.sRGBEncoding;
     }
-
-    get pageCount() { return this.def.pages.length; }
-    get pageName() { return this.def.pages[this.page].name; }
-    get pageBlocks() { return this.def.pages[this.page].blocks; }
     get title() { return this.def.title; }
-    setPage(i) { this.page = (i + this.pageCount) % this.pageCount; this.pageChanged = true; }
-
-    draw(bootT, pageT) {
+    draw(bootT, t) {
         const c = this.ctx;
         c.setTransform(RES, 0, 0, RES, 0, 0);
-        c.clearRect(0, 0, W, H);
-        c.fillStyle = '#04080c'; c.fillRect(0, 0, W, H);
-
-        // Séquence de démarrage : trait lumineux → logo qui clignote → contenu
-        if (bootT < 0.25) {
+        c.globalAlpha = 1; c.clearRect(0, 0, W, H);
+        c.fillStyle = BG; c.fillRect(0, 0, W, H);
+        if (bootT < 0.25) {            // démarrage : trait lumineux
             const w = (W - 80) * (bootT / 0.25);
-            c.fillStyle = ACCENT; c.fillRect((W - w) / 2, H / 2 - 1, w, 3);
-        } else if (bootT < 0.55) {
-            c.fillStyle = ACCENT; c.font = `bold 120px ${FONT}`; c.textAlign = 'center';
-            c.globalAlpha = Math.random() > 0.35 ? 1 : 0.3;
-            c.fillText('T.P', W / 2, H / 2 + 40);
+            c.fillStyle = CY; c.fillRect((W - w) / 2, H / 2 - 1, w, 3);
+        } else if (bootT < 0.5) {      // logo qui clignote
+            c.fillStyle = CY; font(c, 120, 'bold'); c.textAlign = 'center';
+            c.globalAlpha = Math.random() > 0.35 ? 1 : 0.3; c.fillText('T.P', W / 2, H / 2 + 40);
             c.globalAlpha = 1; c.textAlign = 'left';
         } else {
-            c.globalAlpha = Math.min(1, (bootT - 0.55) / 0.2);
-            // bandeau
-            c.fillStyle = 'rgba(0,210,255,0.12)'; c.fillRect(0, 0, W, 64);
-            c.fillStyle = ACCENT; c.fillRect(0, 62, W, 3);
-            c.fillStyle = '#9fb3bd'; c.font = `bold 26px ${FONT}`; c.fillText(this.def.title, X0, 42);
-            // points de pagination
-            this.def.pages.forEach((_, i) => {
-                c.fillStyle = i === this.page ? ACCENT : 'rgba(255,255,255,0.2)';
-                c.beginPath(); c.arc(W - X0 + 10 - (this.def.pages.length - 1 - i) * 28, 33, 8, 0, Math.PI * 2); c.fill();
-            });
-            drawBlocks(c, this.pageBlocks, pageT);
-            // indication
-            c.fillStyle = '#456'; c.font = `22px ${FONT}`;
-            c.fillText('CLICK TO ENTER', X0, H - 22);
-            c.globalAlpha = 1;
+            this.def.draw(c, t, Math.min(1, (bootT - 0.5) / 0.5));
+            // fines lignes de balayage
+            c.fillStyle = 'rgba(0,0,0,0.12)'; for (let y = 0; y < H; y += 4) c.fillRect(0, y, W, 1);
         }
         this.texture.needsUpdate = true;
     }
 }
+
+const LEFT = { title: 'DRIVER // DATA', draw: drawLeft };
+const RIGHT = { title: 'CAREER // TELEMETRY', draw: drawRight };
 
 export function createCockpitScreens({ maxAnisotropy = 8 } = {}) {
     const group = new THREE.Group();
@@ -287,27 +265,21 @@ export function createCockpitScreens({ maxAnisotropy = 8 } = {}) {
         group.add(unit);
     });
 
-    let bootT = 0, pageT = 0, active = false, settled = false;
+    let bootT = 0, clock = 0, active = false, acc = 0;
     const _q = new THREE.Quaternion();
 
     return {
         group,
         screens,
-        show() { group.visible = true; active = true; settled = false; bootT = 0; pageT = 0; screens.forEach(s => { s.page = 0; s.focused = false; }); },
+        show() { group.visible = true; active = true; bootT = 0; clock = 0; screens.forEach(s => { s.focused = false; }); },
         hide() { group.visible = false; active = false; screens.forEach(s => s.focused = false); },
         isActive() { return active; },
         setFocused(screen) { screens.forEach(s => s.focused = (s === screen)); },
         update(delta) {
             if (!active) return;
-            if (screens.some(s => s.pageChanged)) {
-                screens.forEach(s => { s.pageChanged = false; });
-                pageT = 0; settled = false;
-            }
-            if (settled) return;                       // rien ne bouge : on ne redessine pas
-            bootT = Math.min(1.2, bootT + delta / 1.8);
-            pageT += delta;
-            screens.forEach(s => s.draw(bootT, Math.min(1, pageT / 1.2)));
-            if (bootT >= 1 && pageT >= 1.2) settled = true;
+            acc += delta; if (acc < 1 / 30) return;     // 30 images par seconde suffisent pour les écrans
+            clock += acc; bootT = Math.min(1.5, bootT + acc / 1.6); acc = 0;
+            screens.forEach(s => s.draw(bootT, clock));
         },
         // Écran touché par le rayon (ou null)
         pick(raycaster) {
@@ -323,9 +295,9 @@ export function createCockpitScreens({ maxAnisotropy = 8 } = {}) {
             const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(screen.plane.getWorldQuaternion(_q));
             if (normal.dot(camera.position.clone().sub(center)) < 0) normal.negate();
             const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-            const dW = (SCREEN_W * 0.9) / (2 * tan * camera.aspect);
-            const dH = (SCREEN_H * 0.9) / (2 * tan);
-            const d = Math.max(Math.min(dW, dH), 0.16);
+            const dW = (SCREEN_W * 1.55) / (2 * tan * camera.aspect);
+            const dH = (SCREEN_H * 1.55) / (2 * tan);
+            const d = Math.max(Math.min(dW, dH), 0.2);
             return { position: center.clone().addScaledVector(normal, d), target: center };
         }
     };
