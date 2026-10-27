@@ -44,7 +44,7 @@ jobs:
         if: steps.secrets.outputs.ready == 'true'
         run: |
           mkdir -p _site
-          cp index.html script.js style.css cockpit-screens.js content.js globe.js places.js garage.jpg _site/
+          cp index.html script.js style.css cockpit-screens.js content.js globe.js places.js garage.js garage.jpg _site/
           cp -r assets _site/assets
           cp -r data _site/data
           if [ -d photos ]; then cp -r photos _site/photos; fi

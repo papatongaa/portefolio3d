@@ -4,6 +4,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createCockpitScreens, pageToHTML } from './cockpit-screens.js';
 import { panelsData } from './content.js';
 import { createGlobe, placeCardHTML } from './globe.js';
+import { createGarage } from './garage.js';
 
 // Chemins des modèles (en minuscules : les serveurs web, eux, font la différence entre "Models" et "models")
 const CAR_MODEL_URL = 'assets/f1-car.glb';
@@ -40,7 +41,14 @@ const globe = createGlobe({
 });
 scene.add(globe.group);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+// --- GARAGE 3D (remplace l'ancienne image floue) ---
+const garage = createGarage({ renderer, reflections: window.innerWidth > 900 && !location.search.includes('noreflect') });
+scene.add(garage.group);
+scene.environment = garage.envMap;          // les reflets de la voiture viennent du garage
+garage.setFloorY(-3.95);
+document.body.classList.add('garage3d');
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
 scene.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
 mainLight.position.set(5, 10, 7);
@@ -149,6 +157,13 @@ loader.load(CAR_MODEL_URL, (gltf) => {
 
     prepareMaterials(car);
     carGroup.add(car);
+
+    // le sol du garage se pose pile sous les roues
+    carGroup.updateMatrixWorld(true);
+    const floorY = new THREE.Box3().setFromObject(car).min.y;
+    garage.setFloorY(floorY);
+    garage.shadow.position.y = floorY - carGroup.position.y + 0.02;
+    carGroup.add(garage.shadow);
 
     pointsData.forEach((p, i) => {
         const anchor = new THREE.Object3D();
@@ -300,6 +315,7 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
             gsap.to('.panel', { opacity: 0, duration: 0.4 });
             document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
             carGroup.visible = false;
+            garage.setVisible(false);
             globe.show();
             return;
         }
@@ -307,6 +323,7 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
         if (globe.isActive()) {
             globe.hide();
             carGroup.visible = true;
+            garage.setVisible(true);
             camera.position.set(0, -1, 18);
             cameraLookAtTarget.set(0, -3, 0);
         }
