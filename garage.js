@@ -35,7 +35,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         g.fillStyle = '#2f8f63';
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) g.fillRect(cx + sx * bw / 2 - 30, cy + sy * bl / 2 - 30, 60, 60);
     });
-    const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.34, metalness: 0.4, envMapIntensity: 0.8 });
+    const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.62, metalness: 0.25, envMapIntensity: 0.6 });
     if (reflections) { floorMat.transparent = true; floorMat.opacity = 0.84; floorMat.depthWrite = false; }
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.y = 0.004; floor.renderOrder = 1;
@@ -62,7 +62,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         const m = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HEIGHT), wallMat);
         m.position.set(...w.pos); m.rotation.y = w.rot; group.add(m);
         // bande lumineuse verte le long du mur
-        const strip = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, 0.07), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 2.4, 1.3) }));
+        const strip = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, 0.07), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.25, 1.5, 0.85) }));
         strip.position.set(...w.pos); strip.position.y = 1.75; strip.rotation.y = w.rot;
         strip.translateZ(0.02); group.add(strip);
     }
@@ -70,13 +70,13 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     // plafond + rampes lumineuses
     const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), new THREE.MeshStandardMaterial({ color: '#070c0a', roughness: 1 }));
     ceil.rotation.x = Math.PI / 2; ceil.position.y = HEIGHT; group.add(ceil);
-    const lampMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 2.4, 2.4) });
+    const lampMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.25, 1.25, 1.25) });
     for (const x of [-10, -5, 0, 5, 10]) {
         const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, HALF * 1.8), lampMat);
         lamp.position.set(x, HEIGHT - 0.1, 0); group.add(lamp);
     }
     for (const z of [-11, 0, 11]) {      // poutres vertes en travers
-        const b = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.07, 0.07), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 2.2, 1.2) }));
+        const b = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.07, 0.07), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.25, 1.4, 0.8) }));
         b.position.set(0, HEIGHT - 0.6, z); group.add(b);
     }
 
@@ -87,8 +87,8 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 8; g.strokeRect(40, 40, w - 80, h - 80);
         g.fillStyle = '#fff'; g.font = '900 250px "Segoe UI", Roboto, Arial, sans-serif'; g.textBaseline = 'alphabetic';
         g.fillText('CARZERO', 760, 560);
-        g.fillStyle = GREEN_LIGHT; g.font = '600 78px "Segoe UI", Roboto, Arial, sans-serif';
-        g.fillText('R A L L Y   L O G I S T I C S', 770, 700);
+        g.fillStyle = GREEN_LIGHT; g.font = '600 56px "Segoe UI", Roboto, Arial, sans-serif';
+        g.fillText('M O T O R S P O R T   L O G I S T I C S', 770, 700);
     });
     signTex.encoding = THREE.LinearEncoding;
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 5.5), new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }));
@@ -147,7 +147,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     // ---------- tache de lumière sous la voiture ----------
     const poolTex = canvasTex(256, 256, (g, w, h) => {
         const r = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-        r.addColorStop(0, 'rgba(90,230,160,0.20)'); r.addColorStop(0.5, 'rgba(40,160,110,0.07)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+        r.addColorStop(0, 'rgba(90,230,160,0.10)'); r.addColorStop(0.5, 'rgba(40,160,110,0.035)'); r.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = r; g.fillRect(0, 0, w, h);
     });
     const pool = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));

@@ -10,6 +10,20 @@ const stats = (items) => `<div class="m-stats">${items.map(([v, l]) => `<div><b>
 const tags = (items) => `<div class="m-tags">${items.map((t) => `<span>${t}</span>`).join('')}</div>`;
 const timeline = (items) => `<div class="m-timeline">${items.map(([d, t, s]) => `<div><small>${d}</small><b>${t}</b><span>${s}</span></div>`).join('')}</div>`;
 
+// Panneau qui s'ouvre quand on clique sur l'avatar (garage)
+export const meCard = `
+    <img class="me-photo" src="photos/tanguy.jpg" alt="Tanguy Pavat" onerror="this.remove()">
+    <div class="m-eyebrow">FOUNDER · CARZERO</div>
+    <h2>Tanguy Pavat</h2>
+    <p class="m-hook">Born in Steyr, based in Lille, at home in any paddock.</p>
+    <div class="m-stats">
+        <div><b>Early 2027</b><span>available for a 6-month end-of-studies internship</span></div>
+        <div><b>Motorsport management</b><span>the one field I am aiming at</span></div>
+        <div><b>Rally · Circuit · Endurance</b><span>all three worlds, up close</span></div>
+    </div>
+    <a class="m-link" href="mailto:tanguypavat8@gmail.com">Get in touch →</a>
+`;
+
 export const panelsData = {
 
     // 01 · Moteur
