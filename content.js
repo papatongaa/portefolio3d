@@ -88,3 +88,38 @@ export const panelsData = {
         ${tags(['Diplomacy', 'Communication', 'Event organisation', 'Representation'])}
     `
 };
+
+// Version courte, affichée sur le grand écran du garage quand on clique sur une boîte.
+// (la fiche complète ci-dessus s'ouvre avec "Full story")
+export const screenData = {
+    'template-app': {
+        eyebrow: '01 · ENGINE', title: 'App Conception',
+        hook: 'A logistics app for rally teams, built from scratch.',
+        stats: [['30 pages', 'of PDF schedules replaced'], ['Real-time', 'one source of truth for the team'], ['Own company', 'CarZero, with Paddon Racing Group as a client']],
+        text: 'With the support of WRC driver Hayden Paddon, I set out to replace the 30-page PDF schedules that rally teams still rely on. That became CarZero: a simple, 100% customizable solution, tested with mechanics, drivers and managers.',
+        tags: ['Flutter', 'Supabase', 'Glide', 'Product design'],
+        link: { label: 'carzeroapp.com ↗', href: 'https://carzeroapp.com' }
+    },
+    'template-canada': {
+        eyebrow: '02 · FRONT WING', title: 'International Experience',
+        hook: 'From Montreal at 15 to New Zealand with a WRC team.',
+        stats: [['15', 'years old for my first work trip abroad, alone'], ['19', 'countries visited'], ['5 months', 'of daily English in New Zealand']],
+        text: 'Montreal Skeet Club (2019), an Erasmus+ year and management internship in Lithuania (2023-2025), then Paddon Racing Group in Cromwell, New Zealand (April to August 2026).',
+        tags: ['Canada', 'Lithuania', 'New Zealand'],
+        goto: 'front'
+    },
+    'template-tracker': {
+        eyebrow: '03 · WHEELS', title: 'Order Tracker',
+        hook: 'Making the workshop move as fast as the car.',
+        stats: [['2 tools', 'a job tracking system and a workshop order tracker'], ['Apps Script', 'plus custom Chrome extensions'], ['Excel', 'automated template for customer quotes']],
+        text: 'At Paddon Racing Group, I overhauled management procedures and built a job tracking system and a workshop order tracker that connect the management tools and remove administrative friction in the workshop.',
+        tags: ['Google Apps Script', 'Chrome extensions', 'Excel', 'Process automation']
+    },
+    'template-leader': {
+        eyebrow: '04 · REAR WING', title: 'Class Leader',
+        hook: "Spokesperson of the Master's in International Sport Administration.",
+        stats: [['7 / 7', "days a week as the class's main contact"], ['SUAPS', 'student representative on the Sports Council'], ['University of Lille', 'Master 2, International Sport Administration']],
+        text: 'Main contact between students and teaching staff: I relay every document, organise the class events and handle diplomacy between students and lecturers.',
+        tags: ['Diplomacy', 'Communication', 'Event organisation', 'Representation']
+    }
+};

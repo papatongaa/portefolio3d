@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createCockpitScreens, pageToHTML } from './cockpit-screens.js';
-import { panelsData, meCard } from './content.js';
+import { panelsData, meCard, screenData } from './content.js';
 import { createGlobe, placeCardHTML } from './globe.js';
 import { createGarage } from './garage.js';
 import { createAvatar } from './avatar.js';
@@ -314,6 +314,7 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
         cockpitScreens.hide();
         resetScreenFocus();
         if (meMode) exitMe(false);
+        if (screenKey) closeScreen(false);
 
         // Onglet Experience : on remplace la voiture par le globe
         if (target === 'front') {
@@ -378,19 +379,72 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
     });
 });
 
+
+// --- GRAND ÉCRAN DU GARAGE : affiche la version courte de la fiche ---
+const screenHud = document.getElementById('screen-hud');
+const shLink = document.getElementById('sh-link');
+const panelKeys = Array.from(document.querySelectorAll('.panel')).map(p => p.getAttribute('data-modal'));
+let screenKey = null;
+function screenCam() {
+    const c = garage.screenCenter;
+    const mobile = sizes.width < 700;
+    const d = mobile ? 7 : 8.5;
+    return { cam: { x: c.x + 0.35, y: -3.95 + 3.4, z: c.z + d }, look: { x: c.x, y: -3.95 + 4.6, z: c.z } };
+}
+function showOnScreen(key, index) {
+    if (!screenData[key]) return;
+    screenKey = key;
+    const d = screenData[key];
+    garage.setScreen(d);
+    document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i === index));
+    uiVisible = false;
+    gsap.to('.panel', { opacity: 0, duration: 0.4 });
+    document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
+    if (d.link) { shLink.textContent = d.link.label; shLink.href = d.link.href; shLink.classList.remove('hidden'); }
+    else if (d.goto) { shLink.textContent = 'See it on the globe →'; shLink.href = '#'; shLink.dataset.goto = d.goto; shLink.classList.remove('hidden'); }
+    else shLink.classList.add('hidden');
+    if (!d.goto) delete shLink.dataset.goto;
+    screenHud.classList.remove('hidden');
+    requestAnimationFrame(() => screenHud.classList.add('visible'));
+}
+function closeScreen(moveCam = true) {
+    if (!screenKey) return;
+    screenKey = null;
+    garage.setScreen(null);
+    screenHud.classList.remove('visible');
+    setTimeout(() => { if (!screenKey) screenHud.classList.add('hidden'); }, 500);
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    resetCarMaterials();
+    if (moveCam) {
+        isAutoRotating = true; uiVisible = true;
+        gsap.to('.panel', { opacity: 1, duration: 0.6, delay: 0.5 });
+        document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'auto');
+        moveCamera({ x: 6, y: -1, z: 7 }, { x: 0, y: -3, z: 0 });
+    }
+}
+function stepScreen(dir) {
+    const i = (panelKeys.indexOf(screenKey) + dir + panelKeys.length) % panelKeys.length;
+    document.querySelectorAll('.panel')[i].click();
+}
+document.getElementById('sh-prev').addEventListener('click', () => stepScreen(-1));
+document.getElementById('sh-next').addEventListener('click', () => stepScreen(1));
+document.getElementById('sh-close').addEventListener('click', () => closeScreen(true));
+document.getElementById('sh-more').addEventListener('click', () => {
+    modalContent.innerHTML = panelsData[screenKey];
+    modalContainer.classList.add('open'); modalContainer.scrollTop = 0;
+});
+shLink.addEventListener('click', (e) => {
+    if (!shLink.dataset.goto) return;
+    e.preventDefault();
+    const g = shLink.dataset.goto; closeScreen(false);
+    document.querySelector(`.cam-btn[data-target="${g}"]`).click();
+});
+
 // --- CLIC SUR UNE BOÎTE : fiche détaillée + surbrillance de la pièce ---
 document.querySelectorAll('.panel').forEach((panel, index) => {
     panel.addEventListener('click', () => {
         const templateId = panel.getAttribute('data-modal');
-        if (panelsData[templateId]) {
-            modalContent.innerHTML = panelsData[templateId];
-        } else {
-            modalContent.innerHTML = `<p style="color: red;">Erreur : La clé <b>'${templateId}'</b> est introuvable dans content.js</p>`;
-            console.log("Il manque cette clé dans content.js :", templateId);
-        }
-        modalContainer.classList.add('open');
-        modalContainer.scrollTop = 0;
-        document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p === panel));
+        showOnScreen(templateId, index);
         cockpitScreens.hide();
         resetScreenFocus();
         isCockpitView = false;
@@ -477,12 +531,14 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
             targetLookPos = { x: 1.5, y: -1.8, z: -1.5 };
         }
 
-        moveCamera(targetCamPos, targetLookPos);
+        // la caméra se tourne vers le grand écran (la voiture reste en bas de l'image)
+        moveCamera(screenCam().cam, screenCam().look);
     });
 });
 
 document.getElementById('close-modal').addEventListener('click', () => {
     if (globe.isActive()) { closeGlobeCard(); return; }
+    if (screenKey) { modalContainer.classList.remove('open'); return; }
     modalContainer.classList.remove('open');
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     isAutoRotating = true;
@@ -646,6 +702,7 @@ document.querySelectorAll('.panel').forEach(p => p.addEventListener('keydown', (
 window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (meMode) { exitMe(true); return; }
+    if (screenKey && !modalContainer.classList.contains('open')) { closeScreen(true); return; }
     if (modalContainer.classList.contains('open')) document.getElementById('close-modal').click();
     else if (globe.isActive() && globe.isFocused()) globe.back();
 });

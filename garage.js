@@ -80,25 +80,61 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         b.position.set(0, HEIGHT - 0.6, z); group.add(b);
     }
 
-    // ---------- grande enseigne CarZero (mur du fond) ----------
-    const signTex = canvasTex(2048, 1024, (g, w, h) => {
+    // ---------- grande enseigne / écran CarZero (mur du fond) ----------
+    // Au repos : l'enseigne. Quand on clique sur une boîte : un écran qui affiche la fiche (setScreen).
+    const SIGN_X = -10;
+    let iconImg = null, currentScreen = null;
+    const signTex = canvasTex(2048, 1024, () => {});
+    signTex.encoding = THREE.LinearEncoding;
+    const font = (w, px) => `${w} ${px}px "Segoe UI", Roboto, Arial, sans-serif`;
+    function wrap(g, text, x, y, maxW, lh, maxLines) {
+        const words = text.split(' '); let line = ''; let n = 0;
+        for (const w of words) {
+            const t = line ? line + ' ' + w : w;
+            if (g.measureText(t).width > maxW && line) { g.fillText(line, x, y); y += lh; line = w; if (++n >= maxLines) return y; }
+            else line = t;
+        }
+        if (line) { g.fillText(line, x, y); y += lh; }
+        return y;
+    }
+    function drawSign() {
+        const g = signTex.image.getContext('2d'), w = 2048, h = 1024;
         const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, GREEN); gr.addColorStop(1, '#0a3d27');
         g.fillStyle = gr; g.fillRect(0, 0, w, h);
         g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 8; g.strokeRect(40, 40, w - 80, h - 80);
-        g.fillStyle = '#fff'; g.font = '900 250px "Segoe UI", Roboto, Arial, sans-serif'; g.textBaseline = 'alphabetic';
-        g.fillText('CARZERO', 760, 560);
-        g.fillStyle = GREEN_LIGHT; g.font = '600 56px "Segoe UI", Roboto, Arial, sans-serif';
-        g.fillText('M O T O R S P O R T   L O G I S T I C S', 770, 700);
-    });
-    signTex.encoding = THREE.LinearEncoding;
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 5.5), new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }));
-    sign.position.set(0, 4.6, -HALF + 0.05); group.add(sign);
-    // le vrai logo, chargé à part et dessiné par-dessus
-    new THREE.TextureLoader().load(iconUrl, (icon) => {
-        const g = signTex.image.getContext('2d');
-        g.drawImage(icon.image, 130, 190, 560, 560);
+        g.textBaseline = 'alphabetic';
+        const c = currentScreen;
+        if (!c) {
+            g.fillStyle = '#fff'; g.font = font(900, 250); g.fillText('CARZERO', 760, 560);
+            g.fillStyle = GREEN_LIGHT; g.font = font(600, 56); g.fillText('M O T O R S P O R T   L O G I S T I C S', 770, 700);
+            if (iconImg) g.drawImage(iconImg, 130, 190, 560, 560);
+        } else {
+            const X = 120, W = w - 240;
+            if (iconImg) g.drawImage(iconImg, w - 250, 70, 120, 120);
+            g.fillStyle = '#7dffc4'; g.font = font(700, 46); g.fillText(c.eyebrow.split('').join(' ').replace(/ {2,}/g, '   '), X, 140);
+            g.fillStyle = '#fff'; g.font = font(900, 130); g.fillText(c.title, X, 290);
+            g.fillStyle = '#cdeedd'; g.font = font(500, 54); let y = wrap(g, c.hook, X, 375, W, 66, 2);
+            // 3 chiffres clés
+            y += 20; const cw = (W - 80) / 3;
+            c.stats.forEach(([v, l], i) => {
+                const x = X + i * (cw + 40);
+                g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x, y, cw, 215);
+                g.fillStyle = '#43B97F'; g.fillRect(x, y, 8, 215);
+                g.fillStyle = '#fff'; g.font = font(800, v.length > 12 ? 44 : 62); g.fillText(v, x + 32, y + 78);
+                g.fillStyle = '#cdeedd'; g.font = font(500, 38); wrap(g, l, x + 32, y + 132, cw - 56, 46, 2);
+            });
+            y += 215 + 70;
+            g.fillStyle = '#e8f5ee'; g.font = font(400, 44); y = wrap(g, c.text, X, y, W, 58, 4);
+            g.fillStyle = GREEN_LIGHT; g.font = font(700, 40);
+            g.fillText(c.tags.join('   ·   '), X, h - 95);
+        }
         signTex.needsUpdate = true;
-    });
+    }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 5.5), new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }));
+    sign.position.set(SIGN_X, 4.6, -HALF + 0.05); group.add(sign);
+    drawSign();
+    new THREE.TextureLoader().load(iconUrl, (icon) => { iconImg = icon.image; drawSign(); });
+    function setScreen(content) { currentScreen = content; drawSign(); }
 
     // ---------- porte de garage (mur de devant) ----------
     const doorTex = canvasTex(512, 512, (g, w, h) => {
@@ -182,7 +218,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     shadow.rotation.x = -Math.PI / 2; shadow.renderOrder = 3;
 
     return {
-        group, envMap, shadow,
+        group, envMap, shadow, setScreen, screenCenter: new THREE.Vector3(SIGN_X, 4.6, -HALF),
         setFloorY(y) { group.position.y = y; },
         setVisible(v) { group.visible = v; }
     };
