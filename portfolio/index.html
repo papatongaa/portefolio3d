@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Tanguy Pavat — Motorsport Management</title>
+<meta name="description" content="Tanguy Pavat: motorsport management, logistics and app development. Founder of CarZero.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#e10600;--red-d:#a30400;--bg:#15151e;--bg2:#1f1f2b;--bg3:#2a2a39;--line:rgba(255,255,255,.12);--txt:#fff;--dim:#b9b9c6}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:'Titillium Web',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Barlow Condensed','Titillium Web',sans-serif;font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.01em;line-height:.95}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
+
+/* ----- en-tête ----- */
+.top{position:sticky;top:0;z-index:50;background:#000;border-bottom:3px solid var(--red)}
+.top .wrap{display:flex;align-items:center;gap:32px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-size:1.55rem}
+.logo i{display:block;background:var(--red);color:#fff;padding:5px 12px 3px 10px;transform:skewX(-14deg);font-style:italic}
+.logo i b{display:block;transform:skewX(14deg);font-weight:800}
+.nav{display:flex;gap:26px;margin-left:auto;font-weight:700;font-size:.9rem;letter-spacing:.06em;text-transform:uppercase}
+.nav a{padding:8px 0;border-bottom:3px solid transparent;color:#ddd;transition:.15s}
+.nav a:hover{color:#fff;border-color:var(--red)}
+.btn{display:inline-block;background:var(--red);color:#fff;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.85rem;padding:12px 26px;clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);transition:.15s}
+.btn:hover{background:#fff;color:#000}
+.btn.ghost{background:#fff;color:#000}.btn.ghost:hover{background:#000;color:#fff}
+.burger{display:none;margin-left:auto;background:none;border:0;color:#fff;font-size:1.6rem}
+
+/* ----- bandeau défilant (pays) ----- */
+.ticker{background:var(--red);overflow:hidden;white-space:nowrap;border-bottom:1px solid #000}
+.ticker div{display:inline-block;padding:9px 0;animation:tick 60s linear infinite;font-weight:700;letter-spacing:.14em;font-size:.8rem;text-transform:uppercase}
+.ticker span{margin:0 22px}.ticker span:after{content:'◆';margin-left:44px;opacity:.55;font-size:.6rem}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ----- titres de section ----- */
+.sec{padding-top:72px;padding-bottom:8px}
+.sec h2{font-size:clamp(2.2rem,5vw,3.6rem);display:flex;align-items:center;gap:16px;margin-bottom:28px}
+.sec h2:before{content:'';width:12px;height:.8em;background:var(--red);transform:skewX(-14deg);flex:none}
+.sec .sub{color:var(--dim);max-width:680px;margin:-12px 0 28px}
+
+/* ----- grille d'accueil ----- */
+.hero{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding-top:24px}
+.card{position:relative;overflow:hidden;background:var(--bg2);border-radius:6px;display:flex;flex-direction:column;justify-content:flex-end;transition:transform .25s,box-shadow .25s;min-height:230px;isolation:isolate}
+a.card:hover,.card.hov:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(225,6,0,.25)}
+.card .bg{position:absolute;inset:0;z-index:-2;transition:transform .5s}
+a.card:hover .bg{transform:scale(1.05)}
+.card:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 55%,rgba(0,0,0,0) 100%)}
+.card .in{padding:22px 24px}
+.tag{display:inline-block;background:var(--red);font-weight:700;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:3px 9px;margin-bottom:10px}
+.card h3{font-size:1.7rem;margin-bottom:6px}
+.card p{color:#e6e6ee;font-size:.95rem;max-width:560px}
+.card.big{grid-column:span 8;grid-row:span 2;min-height:520px}
+.card.big h3{font-size:clamp(2.2rem,4.6vw,3.7rem)}
+.card.big .bg{background:url(tanguy.jpg) center 18%/cover}
+.card.mid{grid-column:span 4}
+.card.sm{grid-column:span 3}
+.carbon{background:repeating-linear-gradient(45deg,#1b1b25 0 4px,#22222e 4px 8px)}
+.g1{background:radial-gradient(circle at 85% 15%,rgba(225,6,0,.75),transparent 55%),repeating-linear-gradient(45deg,#17171f 0 4px,#20202b 4px 8px)}
+.g2{background:radial-gradient(circle at 15% 20%,rgba(225,6,0,.55),transparent 55%),repeating-linear-gradient(-45deg,#17171f 0 4px,#20202b 4px 8px)}
+.g3{background:linear-gradient(135deg,#a30400,#e10600 45%,#5c0200)}
+.g4{background:radial-gradient(circle at 80% 80%,rgba(225,6,0,.6),transparent 60%),#1b1b25}
+.bignum{position:absolute;right:16px;top:6px;font-size:6.5rem;opacity:.2;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:800;font-style:italic;z-index:-1}
+
+/* ----- fiche pilote ----- */
+.driver{display:grid;grid-template-columns:5fr 7fr;gap:0;background:var(--bg2);border-radius:6px;overflow:hidden}
+.driver .ph{position:relative;min-height:440px;background:url(tanguy.jpg) center 15%/cover}
+.driver .ph:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 60%,var(--bg2))}
+.driver .ph .num{position:absolute;left:18px;bottom:6px;font-size:8rem;color:transparent;-webkit-text-stroke:2px #fff;opacity:.85}
+.driver .tx{padding:36px 40px}
+.driver h3{font-size:clamp(2.2rem,4vw,3.2rem);margin-bottom:4px}
+.driver h3 span{color:var(--red)}
+.driver .lead{color:var(--dim);margin:10px 0 24px;max-width:560px}
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:0 28px}
+.facts div{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:.95rem}
+.facts b{color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.07em;font-size:.76rem;padding-top:2px}
+.facts span{text-align:right;font-weight:600}
+
+/* ----- calendrier (expériences) ----- */
+.cal{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:84px 190px 1fr 24px;gap:18px;align-items:center;padding:20px 8px;border-bottom:1px solid var(--line);cursor:pointer;position:relative;transition:background .2s}
+.row:hover{background:var(--bg2)}
+.row:before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--red);transition:width .2s}
+.row:hover:before,.row.open:before{width:5px}
+.rnd{font-size:.7rem;letter-spacing:.14em;color:var(--dim);font-weight:700;text-transform:uppercase}
+.rnd b{display:block;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-style:italic;font-size:2rem;color:#fff;letter-spacing:0;line-height:1}
+.when{font-weight:700;font-size:.95rem;letter-spacing:.04em;text-transform:uppercase}
+.when small{display:block;color:var(--dim);font-weight:600;letter-spacing:.08em}
+.what h4{font-size:1.35rem;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.01em}
+.what p{color:var(--dim);font-size:.95rem}
+.plus{width:22px;height:22px;position:relative;justify-self:end}
+.plus:before,.plus:after{content:'';position:absolute;background:var(--red);left:0;right:0;top:50%;height:3px;margin-top:-1.5px;transition:.2s}
+.plus:after{transform:rotate(90deg)}
+.row.open .plus:after{transform:rotate(0)}
+.more{grid-column:2/-1;display:none;color:#e6e6ee;font-size:.97rem}
+.more ul{padding-left:18px}.more li{margin:3px 0}
+.row.open .more{display:block}
+.row.open{background:var(--bg2)}
+.kind{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--red);color:#fff;padding:1px 7px;margin-left:8px;vertical-align:middle}
+.kind.edu{border-color:#6e6e82;color:var(--dim)}
+
+/* ----- classement (langues / compétences) ----- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.panel{background:var(--bg2);border-radius:6px;padding:26px 28px}
+.panel h3{font-size:1.8rem;margin-bottom:14px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl td{padding:12px 6px;border-bottom:1px solid var(--line);font-weight:600}
+.tbl td:first-child{width:48px;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-style:italic;font-weight:800;font-size:1.5rem;color:var(--red)}
+.tbl td:last-child{text-align:right;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-size:.78rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{background:var(--bg3);border-left:3px solid var(--red);padding:6px 12px;font-weight:600;font-size:.92rem}
+.chips + h5{margin-top:20px}
+h5{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 10px}
+
+/* ----- paddock passes ----- */
+.passes{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pass{background:#fff;color:#000;border-radius:6px;padding:0 0 18px;position:relative;overflow:hidden;transition:transform .25s}
+.pass:hover{transform:translateY(-4px) rotate(-.6deg)}
+.pass .hd{background:var(--red);color:#fff;padding:10px 16px;font-weight:700;letter-spacing:.16em;font-size:.72rem;text-transform:uppercase}
+.pass .yr{font-size:3rem;padding:14px 16px 0;color:#000}
+.pass p{padding:4px 16px 0;font-weight:700;font-size:1.02rem;line-height:1.25}
+.pass small{display:block;padding:2px 16px 0;color:#666;font-weight:600}
+.pass:after{content:'';position:absolute;top:8px;right:14px;width:34px;height:8px;border-radius:4px;background:rgba(0,0,0,.35)}
+
+/* ----- contact ----- */
+.contact{margin-top:80px;background:var(--red);position:relative;overflow:hidden}
+.contact:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-45deg,rgba(0,0,0,.07) 0 16px,transparent 16px 32px)}
+.contact .wrap{position:relative;padding:64px 24px;display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:center}
+.contact h2{font-size:clamp(2.6rem,6vw,4.8rem)}
+.contact p{margin-top:12px;max-width:520px;font-size:1.05rem}
+.clist{display:grid;gap:12px}
+.clist a,.clist div{display:flex;justify-content:space-between;gap:12px;background:rgba(0,0,0,.28);padding:14px 18px;font-weight:700;border-left:4px solid #fff;transition:.15s}
+.clist a:hover{background:#000}
+.clist small{opacity:.8;letter-spacing:.12em;text-transform:uppercase;font-size:.72rem;align-self:center}
+footer{background:#000;color:var(--dim);font-size:.82rem;padding:28px 0}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* ----- apparition ----- */
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none}.ticker div{animation:none}}
+
+/* ----- mobile ----- */
+@media(max-width:980px){
+ .nav{display:none;position:absolute;top:64px;left:0;right:0;background:#000;flex-direction:column;gap:0;padding:8px 24px 16px;border-bottom:3px solid var(--red)}
+ .nav.open{display:flex}.nav a{padding:14px 0;border-bottom:1px solid var(--line)}
+ .burger{display:block}.top .btn{display:none}
+ .card.big{grid-column:span 12;min-height:420px;grid-row:auto}.card.mid{grid-column:span 6}.card.sm{grid-column:span 6}
+ .driver{grid-template-columns:1fr}.driver .ph{min-height:340px}.driver .ph:after{background:linear-gradient(0deg,var(--bg2),transparent 60%)}
+ .two{grid-template-columns:1fr}.passes{grid-template-columns:repeat(2,1fr)}
+ .contact .wrap{grid-template-columns:1fr}
+ .row{grid-template-columns:64px 1fr 24px}.row .when{grid-column:2;grid-row:1}.row .what{grid-column:2/3;grid-row:2}.row .plus{grid-row:1/3;grid-column:3}.more{grid-column:1/-1}
+}
+@media(max-width:560px){.card.mid,.card.sm{grid-column:span 12;min-height:190px}.facts{grid-template-columns:1fr}.driver .tx{padding:26px 22px}.passes{grid-template-columns:1fr}.logo{font-size:1.25rem}}
+</style>
+</head>
+<body>
+
+<header class="top">
+ <div class="wrap">
+  <a class="logo disp" href="#top"><i><b>TP</b></i><span>Tanguy Pavat</span></a>
+  <button class="burger" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">☰</button>
+  <nav class="nav" onclick="this.classList.remove('open')">
+   <a href="#latest">Latest</a><a href="#driver">Profile</a><a href="#season">Season</a><a href="#standings">Standings</a><a href="#paddock">Paddock</a><a href="#contact">Contact</a>
+  </nav>
+  <a class="btn" href="../docs/CV_Tanguy_Pavat.pdf" target="_blank" rel="noopener">Download CV</a>
+ </div>
+</header>
+
+<div class="ticker" aria-label="Countries visited"><div id="tk"></div></div>
+
+<main id="top">
+<section class="wrap" id="latest">
+ <div class="hero">
+  <a class="card big" href="#driver">
+   <div class="bg"></div>
+   <div class="in"><span class="tag">Featured</span>
+    <h3 class="disp">Built from scratch, made for the paddock</h3>
+    <p>Founder of CarZero, a logistics app for rally teams. Born in Steyr, based in Lille, at home in any paddock. Looking for a 6-month motorsport management internship from February 2027.</p></div>
+  </a>
+  <a class="card mid hov" href="#season"><div class="bg g1"></div><span class="bignum">01</span>
+   <div class="in"><span class="tag">Project</span><h3 class="disp">CarZero</h3><p>A logistics app that replaces 30-page PDF schedules. Built with WRC driver Hayden Paddon's support.</p></div></a>
+  <a class="card mid hov" href="#season"><div class="bg g2"></div><span class="bignum">02</span>
+   <div class="in"><span class="tag">Experience</span><h3 class="disp">Paddon Racing Group</h3><p>Management intern in Cromwell, New Zealand: scheduling rallies for a 20-member team.</p></div></a>
+  <a class="card sm hov" href="#season"><div class="bg g3"></div><span class="bignum">03</span>
+   <div class="in"><span class="tag" style="background:#000">Tools</span><h3 class="disp">Order Tracker</h3><p>Job and workshop order tracking with Apps Script.</p></div></a>
+  <a class="card sm hov" href="#season"><div class="bg g4"></div><span class="bignum">04</span>
+   <div class="in"><span class="tag">Leadership</span><h3 class="disp">Class Leader</h3><p>Spokesperson of the Master's in Int. Sport Administration.</p></div></a>
+  <a class="card sm hov" href="#paddock"><div class="bg g1"></div><span class="bignum">05</span>
+   <div class="in"><span class="tag">Volunteering</span><h3 class="disp">Paddock Passes</h3><p>Circuit Paul Ricard and motorsport events.</p></div></a>
+  <a class="card sm hov" href="#standings"><div class="bg g2"></div><span class="bignum">06</span>
+   <div class="in"><span class="tag">Skills</span><h3 class="disp">Standings</h3><p>Four languages, a full toolbox.</p></div></a>
+ </div>
+</section>
+
+<section class="wrap sec rv" id="driver">
+ <h2 class="disp">Profile</h2>
+ <div class="driver">
+  <div class="ph"><span class="num disp">23</span></div>
+  <div class="tx">
+   <h3 class="disp">Tanguy <span>Pavat</span></h3>
+   <p class="lead">Master's student in International Sport Administration and founder of CarZero. I like making complex operations simple, from rally logistics to workshop workflows.</p>
+   <div class="facts">
+    <div><b>Nationality</b><span>France</span></div>
+    <div><b>Born in</b><span>Steyr, Austria</span></div>
+    <div><b>Based in</b><span>Lille, France</span></div>
+    <div><b>Age</b><span>23</span></div>
+    <div><b>Studies</b><span>Master's, Univ. of Lille</span></div>
+    <div><b>Available</b><span>From 1 Feb 2027 · 6 months</span></div>
+    <div><b>Sports</b><span>Golf (index 16.7), ski racing (national level)</span></div>
+    <div><b>Interests</b><span>Motorsports, photography</span></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="wrap sec rv" id="season">
+ <h2 class="disp">Season</h2>
+ <p class="sub">Experience and education, newest first. Click a round for the details.</p>
+ <div class="cal" id="cal"></div>
+</section>
+
+<section class="wrap sec rv" id="standings">
+ <h2 class="disp">Standings</h2>
+ <div class="two">
+  <div class="panel"><h3 class="disp">Languages</h3>
+   <table class="tbl">
+    <tr><td>1</td><td>French</td><td>Native</td></tr>
+    <tr><td>2</td><td>English</td><td>Fluent</td></tr>
+    <tr><td>3</td><td>German</td><td>Conversational</td></tr>
+    <tr><td>4</td><td>Lithuanian</td><td>Basic</td></tr>
+   </table></div>
+  <div class="panel"><h3 class="disp">Toolbox</h3>
+   <h5>Skills</h5>
+   <div class="chips"><span>Logistics &amp; planning</span><span>Process automation</span><span>App development</span><span>Team coordination</span><span>Data &amp; reporting</span></div>
+   <h5 style="margin-top:20px">Soft skills</h5>
+   <div class="chips"><span>Analytical</span><span>Patient</span><span>Curious</span><span>Quick learner</span><span>Versatile</span></div>
+   <h5 style="margin-top:20px">Software</h5>
+   <div class="chips"><span>Flutter</span><span>Supabase</span><span>Google Apps Script</span><span>Glide</span><span>Excel</span><span>Trello</span><span>Xero</span><span>Procreate</span></div>
+  </div>
+ </div>
+</section>
+
+<section class="wrap sec rv" id="paddock">
+ <h2 class="disp">Paddock passes</h2>
+ <p class="sub">Volunteering at motorsport and sports events.</p>
+ <div class="passes">
+  <div class="pass"><div class="hd">Volunteer · Motorsport</div><div class="yr disp">2026</div><p>NoLimit4Life</p><small>Motorsport event</small></div>
+  <div class="pass"><div class="hd">Volunteer · Running</div><div class="yr disp">2025</div><p>Urban Trail Lille</p><small>Event volunteer</small></div>
+  <div class="pass"><div class="hd">Volunteer · Motorsport</div><div class="yr disp">2022–23</div><p>Circuit Paul Ricard</p><small>Motorsport</small></div>
+  <div class="pass"><div class="hd">Volunteer · Sport</div><div class="yr disp">2017–19</div><p>Interpole Handball · Markal Open</p><small>Handball and tennis</small></div>
+ </div>
+</section>
+</main>
+
+<section class="contact" id="contact">
+ <div class="wrap">
+  <div><h2 class="disp">Let's talk</h2><p>I'm looking for a 6-month end-of-studies internship in motorsport management starting February 2027. Write to me, I answer quickly.</p>
+   <p style="margin-top:24px"><a class="btn ghost" href="../docs/CV_Tanguy_Pavat.pdf" target="_blank" rel="noopener">Download CV</a></p></div>
+  <div class="clist">
+   <a href="mailto:tanguypavat8@gmail.com"><small>Email</small>tanguypavat8@gmail.com</a>
+   <a href="tel:+33628373978"><small>Phone</small>+33 6 28 37 39 78</a>
+   <a href="https://www.linkedin.com/in/tanguy-pavat" target="_blank" rel="noopener"><small>LinkedIn</small>/in/tanguy-pavat</a>
+   <a href="https://carzeroapp.com" target="_blank" rel="noopener"><small>My company</small>carzeroapp.com</a>
+  </div>
+ </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 Tanguy Pavat</span><span>Editorial style inspired by motorsport media. Not affiliated with any racing series.</span></div></footer>
+
+<script>
+const C = ['Australia','Canada','USA','Mauritius','Egypt','New Zealand','Cuba','Finland','Samoa','Morocco','Germany','Austria','UK','Lithuania','Latvia','Spain','Italy','Hungary','Portugal'];
+const tk = C.map(c => `<span>${c}</span>`).join('');
+document.getElementById('tk').innerHTML = tk + tk;
+
+const E = [
+ ['Oct 2026 – now','Romans-sur-Isère, FR','Founder and Director','CarZero','work',['Coding, marketing, accounting, customer relationship and support','Budget planning, decision making, logistics','A 100% customizable logistics app for rally teams, built with the support of WRC driver Hayden Paddon']],
+ ['Apr – Aug 2026','Cromwell, NZ','Management Intern with Hayden Paddon','Paddon Racing Group','work',['Scheduled and supervised rallies for the 20-member team','Overhauled managerial procedures and tools','Developed a rally management mobile app','Developed an automatic cost template for customers']],
+ ['2025 – now','Lille, FR',"Master's in International Sport Administration",'Université de Lille','edu',['Sport & Globalisation: sport management theory, Olympic and sports systems, sports project development','Management: strategic management, sports law, accounting applied to sports organizations, management control','Class leader and student representative on the Sports Council']],
+ ['2023 – 2025','Grenoble, FR · Vilnius, LT',"Double Bachelor's in Eco-Management & Applied Foreign Languages",'Université Grenoble Alpes · with honors','edu',['Money-Finance: how markets work, to optimize investments','Translation: professional translation (FR/EN and FR/DE)','Erasmus+ (1 year in Vilnius): business logistics, entrepreneurship, project management, applied microeconomics']],
+ ['Jul – Aug 2022 & 2023','Valence, FR','Store Associate','Feu Vert','work',['Received 7 pallets of goods and tires per week, and stored them','Organized and tidied up the 900 m² shop','Managed around 40 customers per day']],
+ ['Jul – Aug 2019','Montreal, CA','Operations Assistant','Montreal Skeet Club','work',['Maintained 25 clay-shooting machines every morning','Maintained the 100-hectare outdoor space and the 500 m² clubhouse','Managed 2 stag parties and 15 customers per day; taught customers safety rules']]
+];
+const cal = document.getElementById('cal');
+cal.innerHTML = E.map((e,i)=>`
+ <div class="row" tabindex="0" role="button" aria-expanded="false">
+  <div class="rnd">Round<b>${String(E.length-i).padStart(2,'0')}</b></div>
+  <div class="when">${e[0]}<small>${e[1]}</small></div>
+  <div class="what"><h4>${e[2]}<span class="kind ${e[4]}">${e[4]==='edu'?'Education':'Work'}</span></h4><p>${e[3]}</p></div>
+  <div class="plus"></div>
+  <div class="more"><ul>${e[5].map(x=>`<li>${x}</li>`).join('')}</ul></div>
+ </div>`).join('');
+cal.querySelectorAll('.row').forEach(r=>{
+ const t=()=>{r.classList.toggle('open');r.setAttribute('aria-expanded',r.classList.contains('open'))};
+ r.addEventListener('click',t); r.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();t()}});
+});
+cal.firstElementChild.classList.add('open');
+
+const io = new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.08});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
