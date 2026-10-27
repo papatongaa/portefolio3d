@@ -19,7 +19,7 @@ const canvas = document.querySelector('.webgl');
 const scene = new THREE.Scene();
 
 const sizes = { width: window.innerWidth, height: window.innerHeight };
-const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 400);
 // Sur un écran plus haut que large (téléphone), on élargit le champ de vision pour que la voiture rentre dans l'image
 function fitFieldOfView() {
     const aspect = sizes.width / sizes.height;
@@ -519,7 +519,7 @@ function layoutScreenView(cam, look, shiftX = 0.36) {
     const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
     const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
     const halfH = dP * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), halfW = halfH * aspect;
-    const newLook = tgt.clone().addScaledVector(right, mobile ? 0 : shiftX * halfW).addScaledVector(up, mobile ? 0.5 * halfH : 0.14 * halfH);
+    const newLook = tgt.clone().addScaledVector(right, mobile ? 0 : shiftX * halfW).addScaledVector(up, mobile ? 0.5 * halfH : 0.3 * halfH);
     return { look: newLook };
 }
 function showOnScreen(key, index) {
@@ -811,6 +811,7 @@ const tick = () => {
     const delta = Math.min(clock.getDelta(), 0.1); // 0.1 max : évite un saut après un changement d'onglet
     if (isAutoRotating) carGroup.rotation.y -= AUTO_ROTATE_SPEED * delta;
     hub.update(delta, camera);
+    garage.update(delta);
     {   // étiquettes au-dessus des trois objets
         const showL = hubMode && !meMode && !globe.isActive() && loaderEl().classList.contains('hidden');
         hubLabels.forEach((b) => {

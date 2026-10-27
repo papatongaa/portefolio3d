@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+import { createOutside, createMechanics } from './garage-life.js';
 
 // Garage 3D aux couleurs de l'écurie CarZero.
 // Le sol du garage est à y = 0 dans ce groupe : on le pose ensuite sous les roues avec setFloorY().
@@ -31,6 +32,10 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         const bw = 5.6 * u, bl = 11.6 * u, cx = w / 2, cy = h / 2;
         g.strokeStyle = '#2f8f63'; g.lineWidth = 7; g.strokeRect(cx - bw / 2, cy - bl / 2, bw, bl);
         g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 3; g.strokeRect(cx - bw / 2 - 16, cy - bl / 2 - 16, bw + 32, bl + 32);
+        // couloir de circulation des mécanos (lignes jaunes en pointillés)
+        g.strokeStyle = 'rgba(255,205,60,0.5)'; g.lineWidth = 5; g.setLineDash([46, 34]);
+        for (const [x0, z0, x1, z1] of [[-13.6, -13.4, 13.6, 8.8], [-11.2, -11, 11.2, 6.2]]) g.strokeRect((x0 + HALF) * u, (z0 + HALF) * u, (x1 - x0) * u, (z1 - z0) * u);
+        g.setLineDash([]);
         // repères aux 4 coins
         g.fillStyle = '#2f8f63';
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) g.fillRect(cx + sx * bw / 2 - 30, cy + sy * bl / 2 - 30, 60, 60);
@@ -58,9 +63,22 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         { pos: [-HALF, HEIGHT / 2, 0], rot: Math.PI / 2 },
         { pos: [HALF, HEIGHT / 2, 0], rot: -Math.PI / 2 }
     ];
+    // murs de côté : percés de 3 fenêtres qui donnent sur la piste
+    const WIN_Y0 = 2.5, WIN_Y1 = 6.3, WIN_W = 5.2, WIN_Z = [-8.5, 0, 8.5];
+    const sideTex = wallTex.clone(); sideTex.repeat.set(1 / 6, 1 / 6); sideTex.needsUpdate = true;
+    const sideMat = new THREE.MeshStandardMaterial({ map: sideTex, roughness: 0.85, metalness: 0.05 });
+    function sideWallGeo() {
+        const sh = new THREE.Shape(); sh.moveTo(-HALF, 0); sh.lineTo(HALF, 0); sh.lineTo(HALF, HEIGHT); sh.lineTo(-HALF, HEIGHT); sh.closePath();
+        for (const z of WIN_Z) { const h = new THREE.Path(); h.moveTo(z - WIN_W / 2, WIN_Y0); h.lineTo(z - WIN_W / 2, WIN_Y1); h.lineTo(z + WIN_W / 2, WIN_Y1); h.lineTo(z + WIN_W / 2, WIN_Y0); h.closePath(); sh.holes.push(h); }
+        return new THREE.ShapeGeometry(sh);
+    }
+    const sideGeo = sideWallGeo();
     for (const w of walls) {
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HEIGHT), wallMat);
-        m.position.set(...w.pos); m.rotation.y = w.rot; group.add(m);
+        const side = Math.abs(w.pos[0]) > 1;
+        const m = new THREE.Mesh(side ? sideGeo : new THREE.PlaneGeometry(HALF * 2, HEIGHT), side ? sideMat : wallMat);
+        m.position.set(...w.pos); m.rotation.y = w.rot;
+        if (side) { m.position.y = 0; m.rotation.y = w.rot; }
+        group.add(m);
         // bande lumineuse verte le long du mur
         const strip = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, 0.07), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.25, 1.5, 0.85) }));
         strip.position.set(...w.pos); strip.position.y = 1.75; strip.rotation.y = w.rot;
@@ -82,7 +100,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
 
     // ---------- grande enseigne / écran CarZero (mur du fond) ----------
     // Au repos : l'enseigne. Quand on clique sur une boîte : un écran qui affiche la fiche (setScreen).
-    const SIGN_X = 4, SIGN_Y = 3.4, SIGN_S = 1.2;   // l'écran ne bouge jamais
+    const SIGN_X = 4, SIGN_Y = 4.5, SIGN_S = 1.2;   // l'écran ne bouge jamais
     let iconImg = null, currentScreen = null;
     const shots = new Map();   // captures d'écran de l'app (url -> image ou null si absente)
     function loadShots(list) { for (const u of list || []) if (!shots.has(u)) { shots.set(u, null); const im = new Image(); im.onload = () => { shots.set(u, im); drawSign(); }; im.src = u; } }
@@ -211,6 +229,62 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     envScene.remove(group);
     pmrem.dispose();
 
+    // ---------- déco : banderoles, établi, chariots ----------
+    const banTex = canvasTex(256, 768, (g, w, h) => {
+        const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, GREEN); gr.addColorStop(1, '#0a3d27'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+        g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 6; g.strokeRect(14, 14, w - 28, h - 28);
+        g.fillStyle = '#fff'; g.font = '900 52px "Segoe UI", Arial, sans-serif'; g.save(); g.translate(w / 2 + 18, h - 70); g.rotate(-Math.PI / 2); g.fillText('CARZERO', 0, 0); g.restore();
+        g.fillStyle = GREEN_LIGHT; g.fillRect(40, 70, 40, 40); g.fillRect(100, 70, 40, 40); g.fillRect(160, 70, 40, 40);
+    });
+    for (const x of [-9, -6.3, 6.3, 9]) {
+        const b = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 4.5), new THREE.MeshStandardMaterial({ map: banTex, roughness: 0.8 }));
+        b.position.set(x, 5.7, HALF - 0.08); b.rotation.y = Math.PI; group.add(b);
+    }
+    // établi + panneau à outils au fond à gauche
+    const pegTex = canvasTex(512, 256, (g, w, h) => {
+        g.fillStyle = '#1b2a24'; g.fillRect(0, 0, w, h);
+        g.fillStyle = 'rgba(255,255,255,0.1)'; for (let x = 12; x < w; x += 24) for (let y = 12; y < h; y += 24) g.fillRect(x, y, 3, 3);
+        const tools = [[40, '#c0392b', 90], [100, '#d9e4dd', 120], [160, GREEN_LIGHT, 80], [220, '#d9e4dd', 130], [280, '#e0a030', 100], [340, '#d9e4dd', 110], [400, '#c0392b', 90], [460, '#d9e4dd', 120]];
+        for (const [x, c, l] of tools) { g.fillStyle = c; g.fillRect(x, 40, 16, l); g.fillRect(x - 6, 40, 28, 18); }
+    });
+    const bench = new THREE.Group(); bench.position.set(-6.2, 0, -HALF + 0.9);
+    const steel = new THREE.MeshStandardMaterial({ color: '#8a9690', metalness: 0.8, roughness: 0.35 }), dk = new THREE.MeshStandardMaterial({ color: '#16211c', roughness: 0.7 });
+    const benchTop = new THREE.Mesh(new THREE.BoxGeometry(5, 0.12, 1.3), steel); benchTop.position.y = 1.15; bench.add(benchTop);
+    for (const sx of [-2.3, 2.3]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 1.1), dk); l.position.set(sx, 0.55, 0); bench.add(l); }
+    const drawers = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 1.15), new THREE.MeshStandardMaterial({ map: cabTex, roughness: 0.55, metalness: 0.3 })); drawers.position.set(1.4, 0.55, 0.05); bench.add(drawers);
+    const peg = new THREE.Mesh(new THREE.PlaneGeometry(5, 2.5), new THREE.MeshStandardMaterial({ map: pegTex, roughness: 0.8 })); peg.position.set(0, 2.9, -0.62); bench.add(peg);
+    group.add(bench);
+    // chariots à outils
+    const trolleyGeo = new THREE.BoxGeometry(1.5, 1.3, 0.9), trolleyMat = new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.5, metalness: 0.4 });
+    for (const [x, z, r] of [[-13.2, 9.4, 0.3], [13.0, -9.2, -0.4]]) { const t = new THREE.Mesh(trolleyGeo, trolleyMat); t.position.set(x, 0.75, z); t.rotation.y = r; group.add(t); const lid = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.06, 0.95), steel); lid.position.set(x, 1.43, z); lid.rotation.y = r; group.add(lid); }
+
+    // ---------- fenêtres : cadres, vitres, taches de soleil ----------
+    const frameMat = new THREE.MeshStandardMaterial({ color: '#10181a', metalness: 0.7, roughness: 0.4 });
+    const glassMat = new THREE.MeshBasicMaterial({ color: '#cfe6f2', transparent: true, opacity: 0.07, depthWrite: false });
+    const sunTex = canvasTex(128, 128, (g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); r.addColorStop(0, 'rgba(255,225,170,0.30)'); r.addColorStop(1, 'rgba(255,225,170,0)'); g.fillStyle = r; g.fillRect(0, 0, w, h); });
+    for (const side of [-1, 1]) for (const z of WIN_Z) {
+        const f = new THREE.Group(); f.position.set(side * HALF, 0, z); group.add(f);
+        const bar = (w, h, d, x, y) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); b.position.set(x, y, 0); f.add(b); };
+        const cy = (WIN_Y0 + WIN_Y1) / 2, wh = WIN_Y1 - WIN_Y0;
+        bar(0.35, 0.18, WIN_W + 0.3, 0, WIN_Y0); bar(0.35, 0.18, WIN_W + 0.3, 0, WIN_Y1);
+        for (const dz of [-WIN_W / 2, 0, WIN_W / 2]) { const v = new THREE.Mesh(new THREE.BoxGeometry(0.3, wh, 0.14), frameMat); v.position.set(0, cy, dz); f.add(v); }
+        const gl = new THREE.Mesh(new THREE.PlaneGeometry(WIN_W, wh), glassMat); gl.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; gl.position.set(0, cy, 0); f.add(gl);
+        const glow = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, WIN_W), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.25, 1.4, 0.8) })); glow.position.set(-side * 0.18, WIN_Y0 - 0.1, 0); f.add(glow);
+        const sun = new THREE.Mesh(new THREE.PlaneGeometry(6, 9), new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+        sun.rotation.x = -Math.PI / 2; sun.position.set(-side * 5, 0.015, 0); sun.renderOrder = 2; f.add(sun);
+    }
+
+    // ---------- dehors vivant : piste + voitures de course, et mécanos ----------
+    const OUT_Y = 2.4;
+    const outA = createOutside({ HALF, withSky: true });
+    const outB = createOutside({ HALF, withSky: false }); outB.group.rotation.y = Math.PI;
+    outA.group.position.y = outB.group.position.y = OUT_Y;   // la piste est à hauteur des fenêtres : on voit les voitures depuis le sol du garage
+    group.add(outA.group, outB.group);
+    const stackX = [-14, -12.6, -11.2, 13, 14.4];
+    const mechs = createMechanics({ HALF, carAt: { x: 5.5, z: -0.3 }, tyreStacks: stackX, cabinetZ: [-11, -6.6, -2.2, 2.2, 6.6, 11] });
+    group.add(mechs.group);
+    function update(dt) { if (!group.visible) return; outA.update(dt); outB.update(dt); mechs.update(dt); }
+
     // ---------- miroir au sol (ordinateur seulement : il redessine la scène une 2e fois) ----------
     let mirror = null;
     if (reflections) {
@@ -232,7 +306,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     shadow.rotation.x = -Math.PI / 2; shadow.renderOrder = 3;
 
     return {
-        group, envMap, shadow, setScreen, setScreenPose, screenCenter: new THREE.Vector3(SIGN_X, 4.6, -HALF),
+        group, envMap, shadow, update, debug: { outA, outB, mechs }, setScreen, setScreenPose, screenCenter: new THREE.Vector3(SIGN_X, SIGN_Y + 1.2, -HALF),
         setFloorY(y) { group.position.y = y; },
         setVisible(v) { group.visible = v; }
     };
