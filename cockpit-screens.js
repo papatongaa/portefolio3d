@@ -22,7 +22,7 @@ const LEFT = {
             { t: 'rule' },
             { t: 'text', s: 'Master — International Sport Administration' },
             { t: 'dim', s: 'University of Lille (M2)' },
-            { t: 'dim', s: 'Born in Austria · 19 countries visited' }
+            { t: 'dim', s: 'Born in Austria · 23 countries visited' }
         ] },
         { name: 'Objective', blocks: [
             { t: 'label', s: 'LONG-TERM TARGET' },
@@ -41,6 +41,26 @@ const LEFT = {
             { t: 'hi', s: 'Double Bachelor — Economics & Management' },
             { t: 'small', s: 'and Applied Foreign Languages · Univ. Grenoble Alpes' },
             { t: 'small', s: 'Erasmus+ year at Vilnius University, Lithuania' }
+        ] },
+        { name: 'Involvement', blocks: [
+            { t: 'label', s: 'STUDENT LIFE' },
+            { t: 'hi', s: 'Class leader — Master International Sport Admin.' },
+            { t: 'small', s: 'Student rep, Sports Council (SUAPS) · University of Lille' },
+            { t: 'rule' },
+            { t: 'label', s: 'MOTORSPORT VOLUNTEERING' },
+            { t: 'hi', s: 'Circuit Paul Ricard · 2022 – 2023' },
+            { t: 'small', s: 'Supporting the technical scrutineers' },
+            { t: 'small', s: 'NoLimit4Life motorsport event · 2026' }
+        ] },
+        { name: 'Contact', blocks: [
+            { t: 'label', s: 'EMAIL' },
+            { t: 'big', s: 'tanguypavat8@gmail.com' },
+            { t: 'rule' },
+            { t: 'label', s: 'PHONE' },
+            { t: 'hi', s: '+33 6 28 37 39 78' },
+            { t: 'label', s: 'BASED IN' },
+            { t: 'hi', s: 'Lille & Romans-sur-Isère, France' },
+            { t: 'dim', s: 'Available from February 2027 · 6 months' }
         ] }
     ]
 };

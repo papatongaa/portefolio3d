@@ -253,7 +253,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     }
 
     // ---------- entrée / sortie ----------
-    function show() {
+    function show(seamless = false) {
         active = true;
         root.visible = true;
         camera.near = 0.01; camera.updateProjectionMatrix();
@@ -263,7 +263,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         const d = baseDistance();
         gsap.killTweensOf(S); gsap.killTweensOf(root.scale);
         S.dist = d * 1.9;
-        root.scale.setScalar(0.7);
+        root.scale.setScalar(seamless ? 1 : 0.7);
         zoom.t = d;
         gsap.to(S, { dist: d, duration: 2, ease: 'power3.out' });
         gsap.to(root.scale, { x: 1, y: 1, z: 1, duration: 1.6, ease: 'power3.out' });
@@ -602,7 +602,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         isActive: () => active,
         // position écran (px) d'un lieu : utile pour les tests
         project: (lon, lat) => { const q = ll(lon, lat).applyMatrix4(spin.matrixWorld).project(camera); return { x: (q.x * 0.5 + 0.5) * sz.w, y: (-q.y * 0.5 + 0.5) * sz.h }; },
-        miniTexture,
+        miniTexture, startDistance: () => baseDistance() * 1.9,
         isFocused: () => !!focusId,
         setModalOpen: (b) => {
             modalOpen = b;

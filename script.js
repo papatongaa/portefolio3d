@@ -6,7 +6,7 @@ import { panelsData, meCard, screenData } from './content.js';
 import { createGlobe, placeCardHTML } from './globe.js';
 import { createGarage } from './garage.js';
 import { createAvatar } from './avatar.js';
-import { createHub } from './hub.js';
+import { createHub, GLOBE_R } from './hub.js';
 
 // Chemins des modèles (en minuscules : les serveurs web, eux, font la différence entre "Models" et "models")
 const CAR_MODEL_URL = 'assets/f1-car.glb';
@@ -43,9 +43,14 @@ const globe = createGlobe({
 });
 scene.add(globe.group);
 
+// Le "rig" contient tout le garage (murs, voiture, objets). Pour zoomer sur le globe on le rapetisse et on le décale :
+// le mini-globe vient alors se poser pile à l'origine, là où vit le vrai globe.
+const rig = new THREE.Group();
+scene.add(rig);
+
 // --- GARAGE 3D (remplace l'ancienne image floue) ---
 const garage = createGarage({ renderer, reflections: window.innerWidth > 900 && !location.search.includes('noreflect') });
-scene.add(garage.group);
+rig.add(garage.group);
 scene.environment = garage.envMap;          // les reflets de la voiture viennent du garage
 garage.setFloorY(-3.95);
 document.body.classList.add('garage3d');
@@ -53,11 +58,11 @@ document.body.classList.add('garage3d');
 // --- HUB : mini-globe (gauche) et hologramme de Tanguy (milieu) ; la voiture est à droite ---
 const hub = createHub({ globeTexture: new Promise((r) => setTimeout(r, 1800)).then(() => globe.miniTexture()) });
 hub.setFloorY(-3.95);
-scene.add(hub.group);
+rig.add(hub.group);
 
 // --- AVATAR : debout à côté de la voiture (la voiture tourne, lui ne bouge pas) ---
 const avatar = createAvatar();
-scene.add(avatar.group);
+rig.add(avatar.group);
 const HOME_CAM = new THREE.Vector3(6, -1, 7);
 const AVATAR_XZ = new THREE.Vector3(4.6, 0, -3.6);        // à gauche de l'écran, en dehors du cercle que balaie la voiture
 function placeAvatar(floorY) {
@@ -94,7 +99,7 @@ const pointObjects = [];
 let carHitMesh = null;
 const carGroup = new THREE.Group();
 carGroup.position.y = -3;
-scene.add(carGroup);
+rig.add(carGroup);
 
 // --- ÉCRANS 3D DU COCKPIT (About Me) ---
 const cockpitScreens = createCockpitScreens({ maxAnisotropy: renderer.capabilities.getMaxAnisotropy() });
@@ -387,8 +392,34 @@ function hubGo(which) {
     else if (which === 'me') enterMe();
 }
 hubLabels.forEach((b) => b.addEventListener('click', () => hubGo(b.dataset.hub)));
-hubBack.addEventListener('click', () => goHub());
+hubBack.addEventListener('click', () => document.querySelector('.cam-btn[data-target="auto"]').click());
 
+// --- ZOOM SUR LE GLOBE (sans quitter le garage) ---
+const RIG_K = 1 / GLOBE_R;
+const _gc = new THREE.Vector3();
+function rigTo(on, duration = 1.5) {
+    hub.ballCenter(_gc);
+    const to = on ? { x: -RIG_K * _gc.x, y: -RIG_K * _gc.y, z: -RIG_K * _gc.z, s: RIG_K } : { x: 0, y: 0, z: 0, s: 1 };
+    gsap.killTweensOf(rig.position); gsap.killTweensOf(rig.scale);
+    gsap.to(rig.position, { x: to.x, y: to.y, z: to.z, duration, ease: 'power2.inOut' });
+    gsap.to(rig.scale, { x: to.s, y: to.s, z: to.s, duration, ease: 'power2.inOut' });
+}
+function zoomToGlobe() {
+    hubMode = false; document.body.classList.remove('hub');
+    isAutoRotating = false; isCockpitView = false; uiVisible = false;
+    gsap.to('.panel', { opacity: 0, duration: 0.4 });
+    document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
+    gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
+    rigTo(true, 1.5);
+    moveCamera({ x: 0, y: 0, z: globe.startDistance() }, { x: 0, y: 0, z: 0 });
+    gsap.delayedCall(1.55, () => { hub.setGlobeVisible(false); globe.show(true); });
+}
+// quitte le globe : il redevient le mini-globe du garage
+function leaveGlobe() {
+    globe.hide(); closeGlobeCard();
+    hub.setGlobeVisible(true);
+    rigTo(false, 1.5);
+}
 // --- NAVIGATION (menu du haut) ---
 
 document.querySelectorAll('.cam-btn').forEach(btn => {
@@ -402,9 +433,8 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
 
         // Home : retour au garage (hub)
         if (target === 'auto') {
-            const fromGlobe = globe.isActive();
-            if (fromGlobe) { globe.hide(); closeGlobeCard(); }
-            goHub(fromGlobe);
+            if (globe.isActive()) leaveGlobe();
+            goHub(false);
             return;
         }
 
@@ -417,25 +447,14 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
                 document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
                 resetCarMaterials();
             }
-            isAutoRotating = false; isCockpitView = false; uiVisible = false;
-            gsap.killTweensOf(camera.position); gsap.killTweensOf(cameraLookAtTarget);
-            cameraLookAtTarget.set(0, 0, 0);
-            gsap.to('.panel', { opacity: 0, duration: 0.4 });
-            document.querySelectorAll('.panel').forEach(p => p.style.pointerEvents = 'none');
-            carGroup.visible = false;
-            garage.setVisible(false);
-            hub.setVisible(false); hubMode = false; document.body.classList.remove('hub');
-            globe.show();
+            if (hubMode) zoomToGlobe();
+            else { goHub(false); gsap.delayedCall(1.4, zoomToGlobe); }
             return;
         }
         // Si on quitte le globe, on ramène la voiture
         if (globe.isActive()) {
-            globe.hide();
-            carGroup.visible = true;
-            garage.setVisible(true);
-            carPose(false, true);
-            camera.position.set(0, -1, 18);
-            cameraLookAtTarget.set(0, -3, 0);
+            leaveGlobe();
+            hubMode = true; document.body.classList.add('hub');
         }
 
         // Si une fiche était ouverte, on la ferme et on éteint les pièces en surbrillance
@@ -810,7 +829,8 @@ window.addEventListener('keydown', (e) => {
     if (meMode) { exitMe(); goHub(); return; }
     if (screenKey && !modalContainer.classList.contains('open')) { closeScreen(true); return; }
     if (modalContainer.classList.contains('open')) document.getElementById('close-modal').click();
-    else if (globe.isActive() && globe.isFocused()) globe.back();
+    else if (globe.isActive()) { if (globe.isFocused()) globe.back(); else document.querySelector('.cam-btn[data-target="auto"]').click(); }
+    else if (!hubMode) document.querySelector('.cam-btn[data-target="auto"]').click();
 });
 
 // --- BOUCLE D'ANIMATION ---
@@ -829,7 +849,6 @@ const tick = () => {
         carGroup.rotation.y += d * Math.min(1, delta * 2.5);
     }
     hub.update(delta, camera);
-    hub.group.visible = hub.group.visible && !globe.isActive();
     {   // étiquettes au-dessus des trois objets
         const showL = hubMode && !meMode && !globe.isActive() && loaderEl().classList.contains('hidden');
         hubLabels.forEach((b) => {
@@ -841,7 +860,7 @@ const tick = () => {
             }
             b.classList.toggle('on', showL);
         });
-        hubBack.classList.toggle('on', !hubMode && !globe.isActive() && !meMode);
+        hubBack.classList.toggle('on', !hubMode && !meMode);
     }
     globe.update(delta);
     avatar.update(delta);

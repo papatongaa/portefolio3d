@@ -6,6 +6,7 @@ import * as THREE from 'three';
 // Le sol du garage est à y = 0 dans ce groupe ; on le pose avec setFloorY().
 const GREEN = 0x2fcf8a, CYAN = 0x00d2ff;
 
+export const GLOBE_R = 1.45;
 export const HUB_POS = { globe: new THREE.Vector3(-5.6, 0, -0.5), me: new THREE.Vector3(0, 0, -1.2) };
 
 function glowDisc(r, color, opacity) {
@@ -31,7 +32,7 @@ export function createHub({ globeTexture, photoUrl = 'photos/tanguy.jpg' }) {
     globeRoot.add(pedestal(1.3, 1.15));
     const ball = new THREE.Group(); ball.position.y = 1.15 + 0.35 + 1.45; globeRoot.add(ball);
     const sphereMat = new THREE.MeshBasicMaterial({ color: 0x14324a });
-    const sphere = new THREE.Mesh(new THREE.SphereGeometry(1.45, 64, 48), sphereMat);
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 64, 48), sphereMat);
     ball.add(sphere);
     // UV de la carte : longitude 0 au milieu -> on tourne la sphère pour que l'Europe soit visible au départ
     sphere.rotation.y = -Math.PI * 0.55;
@@ -95,6 +96,9 @@ export function createHub({ globeTexture, photoUrl = 'photos/tanguy.jpg' }) {
         pick: { globe: globeHit, me: meHit },
         setFloorY(y) { group.position.y = y; },
         setVisible(v) { group.visible = v; },
+        setGlobeVisible(v) { ball.visible = v; },
+        // centre du mini-globe (dans l'espace du garage)
+        ballCenter(out) { return out.set(globeRoot.position.x, globeRoot.position.y + ball.position.y, globeRoot.position.z).add(group.position); },
         // points au-dessus des objets (monde) pour placer les étiquettes
         labelPoint(which, out) {
             const root = which === 'globe' ? globeRoot : meRoot, h = which === 'globe' ? 4.5 : 5.2;
