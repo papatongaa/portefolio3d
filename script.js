@@ -354,7 +354,7 @@ function goHub(instant = false) {
     modalContainer.classList.remove('open');
     document.querySelectorAll('.panel').forEach(p => { p.classList.remove('active'); p.style.pointerEvents = 'none'; });
     gsap.to('.panel', { opacity: 0, duration: instant ? 0 : 0.4 });
-    garage.setScreenPose(0, 2.7, 0.8);
+    
     garage.setScreen(null);
     resetCarMaterials();
     carGroup.visible = true; garage.setVisible(true); showHubObjects(true);
@@ -511,29 +511,16 @@ function screenCam() {
 }
 // La pièce se place en bas à gauche de l'image ; le grand écran du fond s'accroche à droite, derrière elle.
 const _vc = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+// L'écran du fond est fixe. On oriente seulement la caméra : la pièce se place en bas à gauche, l'écran reste visible au-dessus.
 function layoutScreenView(cam, look, shiftX = 0.36) {
-    const mobile = sizes.width < 700, aspect = sizes.width / sizes.height;
-    _vc.fov = camera.fov; _vc.aspect = aspect; _vc.updateProjectionMatrix();
+    const aspect = sizes.width / sizes.height, mobile = sizes.width < 700;
     const pos = new THREE.Vector3(cam.x, cam.y, cam.z), tgt = new THREE.Vector3(look.x, look.y, look.z);
     const fwd = new THREE.Vector3().subVectors(tgt, pos); const dP = fwd.length(); fwd.normalize();
     const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
     const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
     const halfH = dP * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), halfW = halfH * aspect;
-    // décale la cible : la pièce passe à gauche / en bas (sur mobile : en bas seulement)
     const newLook = tgt.clone().addScaledVector(right, mobile ? 0 : shiftX * halfW).addScaledVector(up, mobile ? 0.5 * halfH : 0.14 * halfH);
-    // rayon vers le point de l'écran où l'on veut le centre du grand écran
-    _vc.position.copy(pos); _vc.lookAt(newLook); _vc.updateMatrixWorld();
-    const ndc = mobile ? new THREE.Vector2(0, 0.45) : new THREE.Vector2(0.36, -0.1);
-    const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, _vc);
-    const dir = ray.ray.direction;
-    const wallZ = -15.95;
-    let hit = null;
-    if (dir.z < -0.05) { const t = (wallZ - pos.z) / dir.z; hit = pos.clone().addScaledVector(dir, t); }
-    if (!hit) hit = new THREE.Vector3(0, -1.5, wallZ);
-    const D = Math.abs(wallZ - pos.z);
-    const viewW = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * aspect;
-    const scale = THREE.MathUtils.clamp((mobile ? 0.92 : 0.46) * viewW / 11, 0.5, 1.5);
-    return { look: newLook, x: THREE.MathUtils.clamp(hit.x, -9, 9), y: Math.max(hit.y, -3.95 + 2.75 * scale + 0.15), scale };
+    return { look: newLook };
 }
 function showOnScreen(key, index) {
     if (!screenData[key]) return;
@@ -660,19 +647,19 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
 
         if (panel.id === 'panel-0') {
             // App Conception (Capot Moteur)
-            targetCamPos = { x: 4.0, y: -2.2, z: 0.5 };
-            targetLookPos = { x: 1.5, y: -2.9, z: -1.5 };
+            targetCamPos = { x: 2.4, y: -2.2, z: 4.2 };
+            targetLookPos = { x: 0.3, y: -2.9, z: -1.5 };
         } else if (panel.id === 'panel-1') {
             // Canada (Aileron Avant)
             targetCamPos = { x: 2.0, y: -2.3, z: 6.5 };
             targetLookPos = { x: 0.5, y: -3.0, z: 3.2 };
         } else if (panel.id === 'panel-2') {
             // Order Tracker (Roue Avant Droite)
-            targetCamPos = { x: 4.4, y: -2.3, z: 4.6 };
-            targetLookPos = { x: 1.5, y: -2.9, z: 1.6 };
+            targetCamPos = { x: 4.6, y: -2.3, z: 5.8 };
+            targetLookPos = { x: 1.3, y: -2.9, z: 1.6 };
         } else if (panel.id === 'panel-3') {
             // Class Leader (Aileron Arrière)
-            targetCamPos = { x: 3.6, y: -2.1, z: -0.2 };
+            targetCamPos = { x: 3.4, y: -2.0, z: 1.6 };
             targetLookPos = { x: 0.5, y: -2.5, z: -3.7 };
         }
 
@@ -680,7 +667,6 @@ document.querySelectorAll('.panel').forEach((panel, index) => {
         targetCamPos = offP(targetCamPos); targetLookPos = offP(targetLookPos);
         const lay = layoutScreenView(targetCamPos, targetLookPos, panel.id === 'panel-0' ? 0.12 : 0.36);
         moveCamera(targetCamPos, { x: lay.look.x, y: lay.look.y, z: lay.look.z });
-        garage.setScreenPose(lay.x, lay.y, lay.scale);
     });
 });
 

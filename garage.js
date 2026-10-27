@@ -82,7 +82,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
 
     // ---------- grande enseigne / écran CarZero (mur du fond) ----------
     // Au repos : l'enseigne. Quand on clique sur une boîte : un écran qui affiche la fiche (setScreen).
-    const SIGN_X = -10;
+    const SIGN_X = 4, SIGN_Y = 3.4, SIGN_S = 1.2;   // l'écran ne bouge jamais
     let iconImg = null, currentScreen = null;
     const shots = new Map();   // captures d'écran de l'app (url -> image ou null si absente)
     function loadShots(list) { for (const u of list || []) if (!shots.has(u)) { shots.set(u, null); const im = new Image(); im.onload = () => { shots.set(u, im); drawSign(); }; im.src = u; } }
@@ -144,15 +144,11 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         signTex.needsUpdate = true;
     }
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 5.5), new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }));
-    sign.position.set(SIGN_X, 4.6, -HALF + 0.05); group.add(sign);
+    sign.position.set(SIGN_X, SIGN_Y, -HALF + 0.05); sign.scale.setScalar(SIGN_S); group.add(sign);
     drawSign();
     new THREE.TextureLoader().load(iconUrl, (icon) => { iconImg = icon.image; drawSign(); });
     function setScreen(content) { currentScreen = content; loadShots(content && content.images); drawSign(); }
-    function setScreenPose(x, y, scale = 1) {   // y en monde ; null = position de repos
-        const px = x == null ? SIGN_X : x, py = y == null ? 4.6 : y - group.position.y, sc = x == null ? 1 : scale;
-        if (window.gsap) { window.gsap.to(sign.position, { x: px, y: py, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' }); window.gsap.to(sign.scale, { x: sc, y: sc, duration: 1.2, ease: 'power2.inOut', overwrite: 'auto' }); }
-        else { sign.position.set(px, py, sign.position.z); sign.scale.set(sc, sc, 1); }
-    }
+    function setScreenPose() { /* l'écran est fixe : plus rien à déplacer */ }
 
     // ---------- porte de garage (mur de devant) ----------
     const doorTex = canvasTex(512, 512, (g, w, h) => {
@@ -186,7 +182,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     // ---------- piles de pneus (instanciées : un seul dessin) ----------
     const tyreGeo = new THREE.TorusGeometry(0.42, 0.2, 14, 28);
     const stacks = [];
-    for (const x of [-14, -12.6, -11.2, 11.2, 12.6, 14]) stacks.push([x, -HALF + 1.2]);
+    for (const x of [-14, -12.6, -11.2, 13, 14.4]) stacks.push([x, -HALF + 1.2]);
     for (const x of [-14.2, 14.2]) for (const z of [13, 11.6]) stacks.push([x, z]);
     const tyres = new THREE.InstancedMesh(tyreGeo, new THREE.MeshStandardMaterial({ color: '#0b0b0b', roughness: 0.9 }), stacks.length * 5);
     const rims = new THREE.InstancedMesh(new THREE.TorusGeometry(0.4, 0.025, 6, 28), new THREE.MeshBasicMaterial({ color: '#d9e4dd' }), stacks.length * 5);
