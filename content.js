@@ -12,15 +12,19 @@ const timeline = (items) => `<div class="m-timeline">${items.map(([d, t, s]) => 
 
 // Panneau qui s'ouvre quand on clique sur l'avatar (garage)
 export const meCard = `
-    <img class="me-photo" src="photos/tanguy.jpg" alt="Tanguy Pavat" onerror="this.remove()">
     <div class="m-eyebrow">FOUNDER · CARZERO</div>
     <h2>Tanguy Pavat</h2>
     <p class="m-hook">Born in Steyr, based in Lille, at home in any paddock.</p>
     <div class="m-stats">
         <div><b>Early 2027</b><span>available for a 6-month end-of-studies internship</span></div>
         <div><b>Motorsport management</b><span>the one field I am aiming at</span></div>
-        <div><b>Rally · Circuit · Endurance</b><span>all three worlds, up close</span></div>
     </div>
+    <div class="me-sec">Skills</div>
+    <div class="m-tags"><span>Logistics &amp; planning</span><span>Process automation</span><span>App development</span><span>Team coordination</span><span>Data &amp; reporting</span></div>
+    <div class="me-sec">Languages</div>
+    <div class="m-tags"><span>French · native</span><span>English · fluent</span><span>German · conversational</span><span>Lithuanian · basic</span></div>
+    <div class="me-sec">Tools</div>
+    <div class="m-tags"><span>Flutter</span><span>Supabase</span><span>Google Apps Script</span><span>Glide</span><span>Excel</span><span>Trello</span><span>Xero</span></div>
     <a class="m-link" href="mailto:tanguypavat8@gmail.com">Get in touch →</a>
 `;
 

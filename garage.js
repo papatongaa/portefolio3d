@@ -35,7 +35,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         g.fillStyle = '#2f8f63';
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) g.fillRect(cx + sx * bw / 2 - 30, cy + sy * bl / 2 - 30, 60, 60);
     });
-    const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.62, metalness: 0.25, envMapIntensity: 0.6 });
+    const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.75, metalness: 0.2, envMapIntensity: 0.45 });
     if (reflections) { floorMat.transparent = true; floorMat.opacity = 0.84; floorMat.depthWrite = false; }
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.y = 0.004; floor.renderOrder = 1;

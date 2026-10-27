@@ -128,7 +128,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     };
 
     const S = { yaw: -START_VIEW.lon * D2R, pitch: START_VIEW.lat * D2R * 0.9, dist: 5, shift: 0 }; // état animé (shift = décalage en px quand la fiche est ouverte)
-    let world = null, loading = null;
+    let world = null, loading = null, worldLoading = null;
     let active = false, focusId = null, modalOpen = false;
     let globeMesh = null, patch = null, atmosphere = null;
     const arcs = [];
@@ -147,10 +147,9 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
     }
 
     // ---------- chargement des données + construction ----------
-    function load() {
-        if (loading) return loading;
-        el.name.textContent = 'Loading map…';
-        loading = import('./data/world.js').then((m) => {
+    function ensureWorld() {
+        if (worldLoading) return worldLoading;
+        worldLoading = import('./data/world.js').then((m) => {
             world = m.default;
             for (const c of world) {
                 let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
@@ -160,9 +159,23 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
                 }
                 c.bb = [x0, y0, x1, y1];
             }
-            build();
+            return world;
         });
+        return worldLoading;
+    }
+    function load() {
+        if (loading) return loading;
+        el.name.textContent = 'Loading map…';
+        loading = ensureWorld().then(() => build());
         return loading;
+    }
+    // petite carte (même dessin que le globe) pour le mini-globe du garage
+    function miniTexture(width = 1024) {
+        return ensureWorld().then(() => {
+            const cv = document.createElement('canvas'); cv.width = width; cv.height = width / 2;
+            drawMap(cv, world, [-180, -90, 180, 90], { line: width / 1600, grid: 15 });
+            const t = new THREE.CanvasTexture(cv); t.anisotropy = Math.min(8, maxAnisotropy); return t;
+        });
     }
 
     function build() {
@@ -589,6 +602,7 @@ export function createGlobe({ camera, canvas, maxAnisotropy = 1, maxTexture = 40
         isActive: () => active,
         // position écran (px) d'un lieu : utile pour les tests
         project: (lon, lat) => { const q = ll(lon, lat).applyMatrix4(spin.matrixWorld).project(camera); return { x: (q.x * 0.5 + 0.5) * sz.w, y: (-q.y * 0.5 + 0.5) * sz.h }; },
+        miniTexture,
         isFocused: () => !!focusId,
         setModalOpen: (b) => {
             modalOpen = b;
