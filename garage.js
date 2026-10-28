@@ -130,7 +130,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
             if (iconImg) g.drawImage(iconImg, 130, 190, 560, 560);
         } else {
             const imgs = (c.images || []).map(u => shots.get(u)).filter(Boolean);
-            const X = 120, W = imgs.length ? 1250 : w - 240;
+            const X = 120, W = imgs.length ? 1190 : w - 240;
             if (iconImg) g.drawImage(iconImg, w - 250, 70, 120, 120);
             g.fillStyle = '#7dffc4'; g.font = font(700, 46); g.fillText(c.eyebrow.split('').join(' ').replace(/ {2,}/g, '   '), X, 140);
             g.fillStyle = '#fff'; g.font = font(900, 130); g.fillText(c.title, X, 290);
