@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Les deux objets du garage qui accompagnent la voiture :
 //  - le mini-globe (à gauche) -> Experience
@@ -24,7 +25,7 @@ function pedestal(r, h) {
     return g;
 }
 
-export function createHub({ globeTexture, photoUrl = 'photos/tanguy.jpg' }) {
+export function createHub({ globeTexture, photoUrl = 'photos/tanguy.jpg', avatarUrl = 'assets/avatar.glb' }) {
     const group = new THREE.Group(); group.name = 'hub';
 
     // ---------- mini-globe ----------
@@ -80,8 +81,24 @@ export function createHub({ globeTexture, photoUrl = 'photos/tanguy.jpg' }) {
     const meHit = new THREE.Mesh(new THREE.BoxGeometry(2.9, 4.6, 1.2), new THREE.MeshBasicMaterial({ visible: false }));
     meHit.position.y = 2.4; meRoot.add(meHit);
 
+    // ---------- le vrai avatar 3D de Tanguy (Avaturn) : remplace l'hologramme dès qu'il est chargé ----------
+    let mixer = null, avatar = null, avatarYaw = 0;
+    const AV_SCALE = 2.0;       // l'avatar fait ~1,89 m : environ 3,8 unités de haut dans le garage
+    new GLTFLoader().load(avatarUrl, (gltf) => {
+        avatar = gltf.scene; avatar.scale.setScalar(AV_SCALE); avatar.position.y = 0.55;
+        avatar.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.envMapIntensity = 0.7; }); } });
+        meRoot.add(avatar);
+        if (gltf.animations && gltf.animations.length) { mixer = new THREE.AnimationMixer(avatar); const a = mixer.clipAction(gltf.animations[0]); a.play(); }
+        holo.visible = false; beam.visible = false;     // plus besoin de l'hologramme
+    }, undefined, () => { /* pas de fichier : l'hologramme reste */ });
+
     let t = 0;
     function update(delta, camera) {
+        if (mixer) mixer.update(delta);
+        if (avatar && camera) {      // il tourne doucement la tête (le corps) vers le visiteur, sans faire un tour complet
+            const p = camera.position, want = THREE.MathUtils.clamp(Math.atan2(p.x - (meRoot.position.x + group.position.x), p.z - (meRoot.position.z + group.position.z)), -0.9, 0.9);
+            avatarYaw += (want - avatarYaw) * Math.min(1, delta * 2.5); avatar.rotation.y = avatarYaw;
+        }
         t += delta;
         ball.rotation.y += delta * 0.18;
         orbit.rotation.z += delta * 0.25;
