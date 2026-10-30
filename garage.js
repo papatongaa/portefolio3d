@@ -100,7 +100,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
 
     // ---------- grande enseigne / écran CarZero (mur du fond) ----------
     // Au repos : l'enseigne. Quand on clique sur une boîte : un écran qui affiche la fiche (setScreen).
-    const SIGN_X = 4, SIGN_Y = 4.5, SIGN_S = 1.2;   // l'écran ne bouge jamais
+    const SIGN_X = -1.5, SIGN_Y = 4.5, SIGN_S = 1.2;   // l'écran ne bouge jamais
     let iconImg = null, currentScreen = null;
     const shots = new Map();   // captures d'écran de l'app (url -> image ou null si absente)
     function loadShots(list) { for (const u of list || []) if (!shots.has(u)) { shots.set(u, null); const im = new Image(); im.onload = () => { shots.set(u, im); drawSign(); }; im.src = u; } }
@@ -130,7 +130,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
             if (iconImg) g.drawImage(iconImg, 130, 190, 560, 560);
         } else {
             const imgs = (c.images || []).map(u => shots.get(u)).filter(Boolean);
-            const X = 120, W = imgs.length ? 1190 : w - 240;
+            const X = 120, W = imgs.length ? 1250 : w - 240;
             if (iconImg) g.drawImage(iconImg, w - 250, 70, 120, 120);
             g.fillStyle = '#7dffc4'; g.font = font(700, 46); g.fillText(c.eyebrow.split('').join(' ').replace(/ {2,}/g, '   '), X, 140);
             g.fillStyle = '#fff'; g.font = font(900, 130); g.fillText(c.title, X, 290);
@@ -149,10 +149,10 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
             g.fillStyle = GREEN_LIGHT; g.font = font(700, 40);
             g.fillText(c.tags.join('   ·   '), X, h - 70);
             if (imgs.length) {   // captures de l'app, façon téléphones, à droite
-                const ph = 520, gap = 36; let px = w - 120;
+                const ph = 470, gap = 30; let px = w - 120;
                 for (const im of imgs.slice(0, 2).reverse()) {
                     const pw = Math.min(330, ph * im.width / im.height);
-                    px -= pw; const py = 250;
+                    px -= pw; const py = 262;
                     g.fillStyle = '#05100b'; g.beginPath(); g.roundRect(px - 12, py - 12, pw + 24, ph + 24, 34); g.fill();
                     g.save(); g.beginPath(); g.roundRect(px, py, pw, ph, 24); g.clip(); g.drawImage(im, px, py, pw, ph); g.restore();
                     px -= gap;
@@ -247,7 +247,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
         const tools = [[40, '#c0392b', 90], [100, '#d9e4dd', 120], [160, GREEN_LIGHT, 80], [220, '#d9e4dd', 130], [280, '#e0a030', 100], [340, '#d9e4dd', 110], [400, '#c0392b', 90], [460, '#d9e4dd', 120]];
         for (const [x, c, l] of tools) { g.fillStyle = c; g.fillRect(x, 40, 16, l); g.fillRect(x - 6, 40, 28, 18); }
     });
-    const bench = new THREE.Group(); bench.position.set(-6.2, 0, -HALF + 0.9);
+    const bench = new THREE.Group(); bench.position.set(9.6, 0, -HALF + 0.9);
     const steel = new THREE.MeshStandardMaterial({ color: '#8a9690', metalness: 0.8, roughness: 0.35 }), dk = new THREE.MeshStandardMaterial({ color: '#16211c', roughness: 0.7 });
     const benchTop = new THREE.Mesh(new THREE.BoxGeometry(5, 0.12, 1.3), steel); benchTop.position.y = 1.15; bench.add(benchTop);
     for (const sx of [-2.3, 2.3]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 1.1), dk); l.position.set(sx, 0.55, 0); bench.add(l); }
@@ -281,7 +281,7 @@ export function createGarage({ renderer, reflections = true, iconUrl = 'assets/c
     outA.group.position.y = outB.group.position.y = OUT_Y;   // la piste est à hauteur des fenêtres : on voit les voitures depuis le sol du garage
     group.add(outA.group, outB.group);
     const stackX = [-14, -12.6, -11.2, 13, 14.4];
-    const mechs = createMechanics({ HALF, carAt: { x: 5.5, z: -0.3 }, tyreStacks: stackX, cabinetZ: [-11, -6.6, -2.2, 2.2, 6.6, 11] });
+    const mechs = createMechanics({ HALF, carAt: { x: 0, z: -1.2 }, tyreStacks: stackX, cabinetZ: [-11, -6.6, -2.2, 2.2, 6.6, 11] });
     group.add(mechs.group);
     function update(dt) { if (!group.visible) return; outA.update(dt); outB.update(dt); mechs.update(dt); }
 

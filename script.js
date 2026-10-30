@@ -321,7 +321,7 @@ modalContent.addEventListener('click', (e) => {
 });
 
 // --- HUB : le garage avec trois objets cliquables (voiture, globe, Tanguy) ---
-const HUB_CAR = { x: 5.5, z: -0.3, s: 0.72, yaw: 0.55 };
+const HUB_CAR = { x: 0, z: -1.2, s: 0.72, yaw: 0.55 };
 const HUB_CAM = { x: 0, y: -1.7, z: 12.8 }, HUB_LOOK = { x: 0, y: -2.2, z: 0 };
 let hubMode = true;
 let hubYaw = HUB_CAR.yaw;
@@ -758,14 +758,14 @@ function avatarCamera() {
     return { cam, look };
 }
 // Clic sur l'hologramme : la caméra s'approche, l'hologramme passe à gauche, le panneau s'ouvre à droite.
-const ME_CAM = { x: 0.3, y: -1.0, z: 8.4 }, ME_LOOK = { x: 2.4, y: -1.2, z: -1.2 };
+const ME_CAM = { x: 5.8, y: -1.0, z: 9.3 }, ME_LOOK = { x: 7.9, y: -1.2, z: -0.3 };   // l'avatar est à droite du garage
 function enterMe() {
     if (meMode) return;
     meMode = true;
     isCockpitView = false; isAutoRotating = false;
     cockpitScreens.hide(); resetScreenFocus();
     const mobile = sizes.width < 700;
-    moveCamera(mobile ? { x: 0, y: -1.2, z: 8.5 } : ME_CAM, mobile ? { x: 0, y: -0.6, z: -1.2 } : ME_LOOK);
+    moveCamera(mobile ? { x: 5.5, y: -1.2, z: 9.4 } : ME_CAM, mobile ? { x: 5.5, y: -0.6, z: -0.3 } : ME_LOOK);
     gsap.delayedCall(0.9, () => { if (meMode) { mePanel.classList.remove('hidden'); requestAnimationFrame(() => mePanel.classList.add('visible')); } });
 }
 function exitMe() {
@@ -816,7 +816,7 @@ const tick = () => {
         const showL = hubMode && !meMode && !globe.isActive() && loaderEl().classList.contains('hidden');
         hubLabels.forEach((b) => {
             if (showL) {
-                if (b.dataset.hub === 'car') labelPt.set(carGroup.position.x, -3.95 + 3.4, carGroup.position.z);
+                if (b.dataset.hub === 'car') labelPt.set(carGroup.position.x, -3.95 + 1.5, carGroup.position.z);
                 else hub.labelPoint(b.dataset.hub, labelPt);
                 labelPt.project(camera);
                 b.style.transform = `translate(${((labelPt.x * 0.5 + 0.5) * sizes.width).toFixed(0)}px, ${((-labelPt.y * 0.5 + 0.5) * sizes.height).toFixed(0)}px) translate(-50%, -100%)`;

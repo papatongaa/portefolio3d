@@ -152,6 +152,7 @@ export function createOutside({ HALF, withSky = true }) {
                     r.active = true; r.dir = Math.random() < 0.5 ? 1 : -1; r.v = rnd(36, 58);
                     r.lane = rnd(-2.2, 2.2); r.z = -r.dir * (LEN - 20);
                     r.obj.rotation.y = r.dir > 0 ? 0 : Math.PI;
+                    r.obj.position.set(TRACK_X + r.lane, 0, r.z);   // placée avant d'être affichée (sinon elle clignote au centre du garage)
                     r.obj.visible = true;
                 }
             } else {
@@ -205,86 +206,115 @@ export function createMechanics({ HALF, carAt, tyreStacks, cabinetZ }) {
         const body = new THREE.Group(); const m = new THREE.Group(); body.add(m);
         const model = tpl.clone(true); m.add(model);
         const get = (n) => model.getObjectByName(n);
+        // pneu tenu à deux mains devant la poitrine (les mains sont à ~1,24 m de haut, ~0,6 m devant)
         const tyre = new THREE.Group();
-        tyre.add(new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.2, 10, 20), tyreMat), new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.025, 6, 20), rimMat));
-        tyre.position.set(0, 0.95, 0.5); tyre.visible = false; m.add(tyre);
-        const tool = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.28, 0.32), boxMat); tool.position.set(0, 0.9, 0.42); tool.visible = false; m.add(tool);
+        tyre.add(new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.1, 10, 22), tyreMat), new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.012, 6, 22), rimMat));
+        tyre.position.set(0, 1.24, 0.66); tyre.visible = false; m.add(tyre);
+        // caisse à outils tenue devant le ventre
+        const tool = new THREE.Group();
+        tool.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.3), boxMat));
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.025, 0.025), rimMat); handle.position.y = 0.13; tool.add(handle);
+        tool.position.set(0, 1.07, 0.56); tool.visible = false; m.add(tool);
         body.scale.setScalar(1.3);
         body.userData = { m, legL: get('legL'), legR: get('legR'), armL: get('armL'), armR: get('armR'), tyre, tool };
         return body;
     }
 
-    // ----- le circuit de promenade : un rectangle qui fait le tour du garage, sans toucher la voiture -----
-    const X0 = -12.4, X1 = 12.4, Z0 = -12.2, Z1 = 6.6, W = X1 - X0, D = Z1 - Z0, L = 2 * (W + D);
-    const corners = [0, W, W + D, 2 * W + D];
-    function ringPoint(s) {
-        s = ((s % L) + L) % L;
-        if (s < W) return [X0 + s, Z0];
-        if (s < W + D) return [X1, Z0 + (s - W)];
-        if (s < 2 * W + D) return [X1 - (s - W - D), Z1];
-        return [X0, Z1 - (s - 2 * W - D)];
+    // ----- le circuit de promenade : deux "voies" qui font le tour du garage (on roule à droite : pas de croisement face à face) -----
+    const X0 = -12.4, X1 = 12.4, Z0 = -12.2, Z1 = 6.6, LANE = 0.6;
+    function ring(m) {          // m > 0 : voie extérieure ; m < 0 : voie intérieure
+        const a = X0 - m, b = X1 + m, c = Z0 - m, d = Z1 + m, W = b - a, D = d - c, L = 2 * (W + D);
+        return {
+            W, D, L, corners: [0, W, W + D, 2 * W + D],
+            point(s) {
+                s = ((s % L) + L) % L;
+                if (s < W) return [a + s, c];
+                if (s < W + D) return [b, c + (s - W)];
+                if (s < 2 * W + D) return [b - (s - W - D), d];
+                return [a, d - (s - 2 * W - D)];
+            },
+            nearest(x, z) {
+                const cx = Math.min(b, Math.max(a, x)), cz = Math.min(d, Math.max(c, z));
+                const ds = [Math.abs(cz - c), Math.abs(cx - b), Math.abs(cz - d), Math.abs(cx - a)];
+                const e = ds.indexOf(Math.min(...ds));
+                if (e === 0) return cx - a;
+                if (e === 1) return W + (cz - c);
+                if (e === 2) return W + D + (b - cx);
+                return 2 * W + D + (d - cz);
+            }
+        };
     }
-    function nearestS(x, z) {
-        const cx = Math.min(X1, Math.max(X0, x)), cz = Math.min(Z1, Math.max(Z0, z));
-        const ds = [Math.abs(cz - Z0), Math.abs(cx - X1), Math.abs(cz - Z1), Math.abs(cx - X0)];
-        const e = ds.indexOf(Math.min(...ds));
-        if (e === 0) return cx - X0;
-        if (e === 1) return W + (cz - Z0);
-        if (e === 2) return W + D + (X1 - cx);
-        return 2 * W + D + (Z1 - cz);
-    }
+    const RING0 = ring(0), LANE_IN = ring(-LANE), LANE_OUT = ring(LANE);
     function route(from, to) {
-        const sA = nearestS(from[0], from[1]), sB = nearestS(to[0], to[1]);
-        let fwd = ((sB - sA) % L + L) % L; const dir = fwd <= L / 2 ? 1 : -1; const dist = dir > 0 ? fwd : L - fwd;
-        const pts = [ringPoint(sA)];
-        for (const c of corners) {
-            const off = dir > 0 ? ((c - sA) % L + L) % L : ((sA - c) % L + L) % L;
-            if (off > 0.01 && off < dist - 0.01) pts.push([off, ringPoint(c)]);
+        const sA0 = RING0.nearest(from[0], from[1]), sB0 = RING0.nearest(to[0], to[1]);
+        const fwd = ((sB0 - sA0) % RING0.L + RING0.L) % RING0.L, dir = fwd <= RING0.L / 2 ? 1 : -1;
+        const g = dir > 0 ? LANE_IN : LANE_OUT;      // sens horaire : voie intérieure ; sens inverse : voie extérieure
+        const sA = g.nearest(from[0], from[1]), sB = g.nearest(to[0], to[1]);
+        const dist = dir > 0 ? ((sB - sA) % g.L + g.L) % g.L : ((sA - sB) % g.L + g.L) % g.L;
+        const mid = [];
+        for (const c of g.corners) {
+            const off = dir > 0 ? ((c - sA) % g.L + g.L) % g.L : ((sA - c) % g.L + g.L) % g.L;
+            if (off > 0.01 && off < dist - 0.01) mid.push([off, g.point(c)]);
         }
-        const mid = pts.slice(1).sort((a, b) => a[0] - b[0]).map(p => p[1]);
-        return [from, pts[0], ...mid, ringPoint(sB), to];
+        mid.sort((x, y) => x[0] - y[0]);
+        return [from, g.point(sA), ...mid.map((q) => q[1]), g.point(sB), to];
     }
 
-    // ----- les lieux -----
-    const carSites = [[11.4, -2.6], [11.4, 2.4], [9.2, 5.2], [2.4, 5.6]];
-    const stand = (x) => ({ p: [x, -HALF + 2.5], face: Math.PI });
-    const tyreSpots = tyreStacks.map(stand);
+    // ----- les lieux (chacun ne peut être pris que par un mécano à la fois) -----
+    const mkSite = (x, z) => ({ p: [x, z], face: Math.atan2(carAt.x - x, carAt.z - z) });
+    const siteFL = mkSite(-3.4, 4.6), siteFR = mkSite(3.4, 4.6), siteBL = mkSite(-3.4, -8.2), siteBR = mkSite(3.4, -8.2), siteE = mkSite(7.4, -5.0);
+    const carSites = [siteFL, siteFR, siteBL, siteBR, siteE];
+    const sitePairs = [[siteFL, siteFR], [siteBL, siteBR]];
+    const tyreSpots = tyreStacks.map((x) => ({ p: [x, -HALF + 2.5], face: Math.PI }));
     const cabSpots = [];
     for (const side of [-1, 1]) for (const z of cabinetZ) cabSpots.push({ p: [side * (HALF - 2.2), z], face: side < 0 ? -Math.PI / 2 : Math.PI / 2 });
-    const faceCar = (p) => Math.atan2(carAt.x - p[0], carAt.z - p[1]);
     const pick = (a) => a[(Math.random() * a.length) | 0];
 
+    const mechs = [];
+    const taken = (spot, me) => mechs.some((o) => o !== me && (o.hold.includes(spot) || Math.hypot(o.body.position.x - spot.p[0], o.body.position.z - spot.p[1]) < 2.4));
+    const freeOf = (list, me) => list.filter((sp) => !taken(sp, me));
+
+    function setPlan(mech, steps) { mech.steps = steps; mech.i = 0; mech.sub = 0; mech.timer = 0; mech.joined = false; }
+    const here = (m) => [m.body.position.x, m.body.position.z];
+    function fetchSteps(mech, src, kind, site, extra) {
+        return [
+            { t: 'walk', pts: route(here(mech), src.p) }, { t: 'face', a: src.face }, { t: 'reach', d: 1.4 }, { t: 'carry', what: kind },
+            { t: 'walk', pts: route(src.p, site.p) }, { t: 'face', a: site.face }, ...extra
+        ];
+    }
     function planTask(mech) {
-        const steps = []; const here = [mech.body.position.x, mech.body.position.z];
-        const kind = Math.random() < 0.55 ? 'tyre' : 'tool';
-        const src = kind === 'tyre' ? pick(tyreSpots) : pick(cabSpots);
-        const site = pick(carSites);
-        steps.push({ t: 'idle', d: rnd(0.5, 3) });
-        steps.push({ t: 'walk', pts: route(here, src.p) });
-        steps.push({ t: 'face', a: src.face });
-        steps.push({ t: 'reach', d: 1.4 });
-        steps.push({ t: 'carry', what: kind });
-        steps.push({ t: 'walk', pts: route(src.p, site) });
-        steps.push({ t: 'face', a: faceCar(site) });
-        steps.push({ t: 'work', d: rnd(3, 5.5) });
-        steps.push({ t: 'carry', what: null });
-        if (Math.random() < 0.6) {     // il rapporte parfois quelque chose
-            steps.push({ t: 'walk', pts: route(site, src.p) });
-            steps.push({ t: 'face', a: src.face });
-            steps.push({ t: 'reach', d: 1.0 });
+        mech.hold = [];
+        const others = mechs.filter((o) => o !== mech);
+        // une fois sur deux, deux mécanos travaillent ensemble : l'un amène un pneu, l'autre les outils
+        const mate = others.find((o) => o.steps[o.i] && o.steps[o.i].t === 'idle' && o.i === 0 && !o.joined);
+        const pairs = sitePairs.filter((pr) => pr.every((sp) => !taken(sp, mech)));
+        const tys = freeOf(tyreSpots, mech), cabs = freeOf(cabSpots, mech);
+        if (mate && pairs.length && tys.length && cabs.length && Math.random() < 0.5) {
+            const pr = pick(pairs), ty = pick(tys), cb = pick(cabs), grp = { n: 0 }, workT = rnd(3.5, 6);
+            const mk = (who, src, kind, site) => {
+                setPlan(who, [{ t: 'idle', d: rnd(0.3, 1.2) }, ...fetchSteps(who, src, kind, site, [{ t: 'sync', g: grp }, { t: 'work', d: workT }, { t: 'carry', what: null }, { t: 'idle', d: rnd(0.5, 1.5) }])]);
+                who.hold = [src, site];
+            };
+            mk(mech, ty, 'tyre', pr[0]); mk(mate, cb, 'tool', pr[1]);
+            return;
         }
-        mech.steps = steps; mech.i = 0; mech.sub = 0; mech.timer = 0;
+        const kind = Math.random() < 0.55 ? 'tyre' : 'tool';
+        const srcs = kind === 'tyre' ? tys : cabs, sites = freeOf(carSites, mech);
+        if (!srcs.length || !sites.length) { setPlan(mech, [{ t: 'idle', d: rnd(1.5, 3) }]); return; }
+        const src = pick(srcs), site = pick(sites);
+        mech.hold = [src, site];
+        setPlan(mech, [{ t: 'idle', d: rnd(0.5, 3) }, ...fetchSteps(mech, src, kind, site, [{ t: 'work', d: rnd(3, 5.5) }, { t: 'carry', what: null }, { t: 'idle', d: rnd(0.5, 1.5) }])]);
     }
 
-    const mechs = [];
     for (let k = 0; k < 3; k++) {
         const body = makeMechanic(k);
-        const start = ringPoint(k * L / 3 + 4);
+        const g = LANE_IN, start = g.point(k * g.L / 3 + 4);
         body.position.set(start[0], 0, start[1]);
         root.add(body);
-        const mech = { body, steps: [], i: 0, sub: 0, timer: 0, phase: 0, yaw: 0, carry: null, speed: rnd(2.5, 3.1), pose: 0 };
-        planTask(mech); mechs.push(mech);
+        mechs.push({ body, steps: [], i: 0, sub: 0, timer: 0, phase: 0, yaw: 0, carry: null, speed: rnd(2.5, 3.0), hold: [], idx: k, wait: 0, joined: false });
     }
+    mechs.forEach(planTask);
+
     // dès que le modèle Blender est chargé, chaque mécano change de corps sans perdre sa place ni sa tâche
     new GLTFLoader().load('assets/mechanic.glb', (gltf) => {
         for (const mech of mechs) {
@@ -306,16 +336,33 @@ export function createMechanics({ HALF, carAt, tyreStacks, cabinetZ }) {
                 const tgt = st.pts[mech.sub + 1];
                 if (!tgt) next();
                 else {
-                    const p = mech.body.position; const dx = tgt[0] - p.x, dz = tgt[1] - p.z; const dist = Math.hypot(dx, dz);
-                    const step = mech.speed * dt;
-                    if (dist <= step) { p.x = tgt[0]; p.z = tgt[1]; mech.sub++; }
-                    else { p.x += dx / dist * step; p.z += dz / dist * step; mech.yaw += angDiff(mech.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 8); }
-                    walking = true;
+                    const p = mech.body.position; const dx = tgt[0] - p.x, dz = tgt[1] - p.z; const dist = Math.hypot(dx, dz), step = mech.speed * dt;
+                    const fx = dx / (dist || 1), fz = dz / (dist || 1);
+                    // quelqu'un juste devant ? on s'arrête, puis on le contourne si ça dure
+                    let blocked = false;
+                    for (const o of mechs) if (o !== mech) {
+                        const ox = o.body.position.x - p.x, oz = o.body.position.z - p.z;
+                        if (ox * ox + oz * oz < 1.5 * 1.5 && ox * fx + oz * fz > 0) blocked = true;
+                    }
+                    mech.wait = blocked ? mech.wait + dt : 0;
+                    if (blocked && mech.wait < 1.0) { /* il attend */ }
+                    else {
+                        let mx = fx, mz = fz;
+                        if (blocked) { mx = fx * 0.55 - fz * 0.83; mz = fz * 0.55 + fx * 0.83; }   // contournement par la droite
+                        if (!blocked && dist <= step) { p.x = tgt[0]; p.z = tgt[1]; mech.sub++; }
+                        else { p.x += mx * step; p.z += mz * step; mech.yaw += angDiff(mech.yaw, Math.atan2(mx, mz)) * Math.min(1, dt * 8); }
+                        walking = true;
+                    }
                 }
             }
             else if (st.t === 'face') { mech.yaw += angDiff(mech.yaw, st.a) * Math.min(1, dt * 7); mech.timer += dt; if (mech.timer > 0.5) next(); }
             else if (st.t === 'reach') { mech.timer += dt; mode = 'reach'; if (mech.timer > st.d) next(); }
             else if (st.t === 'work') { mech.timer += dt; mode = 'work'; if (mech.timer > st.d) next(); }
+            else if (st.t === 'sync') {      // on attend l'autre mécano avant de commencer ensemble
+                if (!mech.joined) { st.g.n++; mech.joined = true; }
+                mech.timer += dt;
+                if (st.g.n >= 2 || mech.timer > 25) { mech.joined = false; next(); }
+            }
             else if (st.t === 'carry') { mech.carry = st.what; next(); }
 
             // animation
@@ -326,17 +373,22 @@ export function createMechanics({ HALF, carAt, tyreStacks, cabinetZ }) {
             u.legL.rotation.x += (sw * 0.7 - u.legL.rotation.x) * k;
             u.legR.rotation.x += (-sw * 0.7 - u.legR.rotation.x) * k;
             let armA = walking ? -sw * 0.6 : 0, armB = walking ? sw * 0.6 : 0;
-            if (carrying) { armA = armB = -1.15; }
+            if (carrying) { armA = armB = mech.carry === 'tyre' ? -1.25 : -0.95; }       // les mains se posent sur l'objet
             if (mode === 'reach') { armA = armB = -1.5 + Math.sin(mech.timer * 6) * 0.1; }
-            if (mode === 'work') { armA = -1.0 + Math.sin(mech.timer * 7) * 0.25; armB = -1.0 + Math.cos(mech.timer * 5) * 0.2; }
+            if (mode === 'work') { const base = carrying ? (mech.carry === 'tyre' ? -1.25 : -0.95) : -1.0; armA = base + Math.sin(mech.timer * 7) * 0.12; armB = base + Math.cos(mech.timer * 5) * 0.1; }
             u.armL.rotation.x += (armA - u.armL.rotation.x) * k;
             u.armR.rotation.x += (armB - u.armR.rotation.x) * k;
-            // penché quand il travaille, léger rebond en marchant
-            const lean = mode === 'work' ? 0.55 : mode === 'reach' ? 0.15 : 0;
+            const lean = mode === 'work' ? 0.35 : mode === 'reach' ? 0.15 : 0;
             u.m.rotation.x += (lean - u.m.rotation.x) * k;
             u.m.position.y = walking ? Math.abs(Math.sin(mech.phase)) * 0.05 : 0;
             u.tyre.visible = mech.carry === 'tyre'; u.tool.visible = mech.carry === 'tool';
             mech.body.rotation.y = mech.yaw;
+        }
+        // jamais l'un dans l'autre : si deux mécanos se touchent, on les écarte doucement
+        for (let i = 0; i < mechs.length; i++) for (let j = i + 1; j < mechs.length; j++) {
+            const a = mechs[i].body.position, b = mechs[j].body.position;
+            const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz) || 0.001, MIN = 0.9;
+            if (d < MIN) { const push = (MIN - d) * 0.5 * Math.min(1, dt * 12), nx = dx / d, nz = dz / d; a.x -= nx * push; a.z -= nz * push; b.x += nx * push; b.z += nz * push; }
         }
     }
     return { group: root, update, mechs };

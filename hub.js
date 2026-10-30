@@ -8,7 +8,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const GREEN = 0x2fcf8a, CYAN = 0x00d2ff;
 
 export const GLOBE_R = 1.45;
-export const HUB_POS = { globe: new THREE.Vector3(-5.6, 0, -0.5), me: new THREE.Vector3(0, 0, -1.2) };
+export const HUB_POS = { globe: new THREE.Vector3(-5.6, 0, -0.5), me: new THREE.Vector3(5.5, 0, -0.3) };
 
 function glowDisc(r, color, opacity) {
     const m = new THREE.Mesh(new THREE.RingGeometry(r * 0.82, r, 64), new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false }));
